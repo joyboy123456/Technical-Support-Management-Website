@@ -33,7 +33,7 @@ function mapRowToDevice(row: any, logs: any[] = [], issues: any[] = []): Device 
     })),
     issues: issues.map(issue => ({
       date: issue.date,
-      desc: issue.desc,
+      desc: issue.description,
       status: issue.status,
     })),
   };

@@ -108,7 +108,7 @@ export interface Database {
           id: string
           device_id: string
           date: string
-          desc: string
+          description: string
           status: '处理中' | '已解决' | null
           created_at: string
         }
@@ -116,7 +116,7 @@ export interface Database {
           id?: string
           device_id: string
           date: string
-          desc: string
+          description: string
           status?: '处理中' | '已解决' | null
           created_at?: string
         }
@@ -124,7 +124,7 @@ export interface Database {
           id?: string
           device_id?: string
           date?: string
-          desc?: string
+          description?: string
           status?: '处理中' | '已解决' | null
           created_at?: string
         }
