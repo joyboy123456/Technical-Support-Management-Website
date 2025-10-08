@@ -1,0 +1,285 @@
+/* 像素风格设计系统 */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  /* 像素风格字体 */
+  --pixel-font-primary: 'Press Start 2P', monospace;
+  --pixel-font-secondary: 'Courier New', monospace;
+
+  /* 像素风格颜色调色板 - 复古游戏机风格 */
+  --pixel-black: #0c0c0c;
+  --pixel-white: #fcfcfc;
+  --pixel-gray-dark: #2c2c2c;
+  --pixel-gray-medium: #6c6c6c;
+  --pixel-gray-light: #bcbcbc;
+
+  /* 主色调 - 明亮的像素色彩 */
+  --pixel-blue: #0084ff;
+  --pixel-blue-dark: #0050cc;
+  --pixel-blue-light: #60b0ff;
+
+  --pixel-green: #00ff00;
+  --pixel-green-dark: #00cc00;
+  --pixel-green-light: #60ff60;
+
+  --pixel-red: #ff0084;
+  --pixel-red-dark: #cc0050;
+  --pixel-red-light: #ff60b0;
+
+  --pixel-yellow: #ffcc00;
+  --pixel-yellow-dark: #cc9900;
+  --pixel-yellow-light: #ffdf60;
+
+  --pixel-purple: #cc00ff;
+  --pixel-purple-dark: #9900cc;
+  --pixel-purple-light: #df60ff;
+
+  /* 像素阴影效果 */
+  --pixel-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
+  --pixel-shadow-sm: 2px 2px 0px rgba(0, 0, 0, 0.25);
+  --pixel-shadow-lg: 6px 6px 0px rgba(0, 0, 0, 0.25);
+
+  /* 像素边框 */
+  --pixel-border-width: 4px;
+  --pixel-border-sm: 2px;
+  --pixel-border-lg: 6px;
+}
+
+/* 像素化抗锯齿设置 */
+* {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* 基础像素风格类 */
+.pixel-font {
+  font-family: var(--pixel-font-primary) !important;
+  font-size: 12px;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.pixel-font-sm {
+  font-size: 8px;
+}
+
+.pixel-font-lg {
+  font-size: 16px;
+}
+
+/* 像素按钮样式 */
+.pixel-button {
+  position: relative;
+  display: inline-block;
+  padding: 12px 24px;
+  font-family: var(--pixel-font-primary);
+  font-size: 10px;
+  text-transform: uppercase;
+  background-color: var(--pixel-blue);
+  color: var(--pixel-white);
+  border: none;
+  cursor: pointer;
+  transition: all 0.1s;
+  box-shadow: var(--pixel-shadow);
+}
+
+.pixel-button::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: var(--pixel-black);
+  z-index: -1;
+}
+
+.pixel-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.25);
+}
+
+.pixel-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
+}
+
+/* 像素卡片 */
+.pixel-card {
+  position: relative;
+  background: var(--pixel-white);
+  padding: 16px;
+  margin: 8px;
+}
+
+.pixel-card::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: 4px;
+  bottom: 4px;
+  background: var(--pixel-black);
+  z-index: -1;
+}
+
+/* 像素边框 */
+.pixel-border {
+  border: var(--pixel-border-width) solid var(--pixel-black);
+}
+
+.pixel-border-sm {
+  border-width: var(--pixel-border-sm);
+}
+
+.pixel-border-lg {
+  border-width: var(--pixel-border-lg);
+}
+
+/* 像素输入框 */
+.pixel-input {
+  padding: 8px 12px;
+  font-family: var(--pixel-font-secondary);
+  font-size: 14px;
+  background: var(--pixel-white);
+  border: var(--pixel-border-width) solid var(--pixel-black);
+  outline: none;
+  transition: all 0.1s;
+}
+
+.pixel-input:focus {
+  box-shadow: var(--pixel-shadow);
+  transform: translate(-2px, -2px);
+}
+
+/* 像素风格动画 */
+@keyframes pixel-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes pixel-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes pixel-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.pixel-animate-blink {
+  animation: pixel-blink 1s infinite;
+}
+
+.pixel-animate-shake {
+  animation: pixel-shake 0.5s infinite;
+}
+
+.pixel-animate-bounce {
+  animation: pixel-bounce 0.5s infinite;
+}
+
+/* 像素网格背景 */
+.pixel-grid-bg {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 16px,
+      rgba(0, 0, 0, 0.03) 16px,
+      rgba(0, 0, 0, 0.03) 17px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 16px,
+      rgba(0, 0, 0, 0.03) 16px,
+      rgba(0, 0, 0, 0.03) 17px
+    );
+}
+
+/* 像素对话框 */
+.pixel-dialog {
+  position: relative;
+  background: var(--pixel-white);
+  border: var(--pixel-border-width) solid var(--pixel-black);
+  padding: 24px;
+  margin: 16px;
+}
+
+.pixel-dialog::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 32px;
+  width: 0;
+  height: 0;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 16px solid var(--pixel-black);
+}
+
+/* 像素徽章 */
+.pixel-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-family: var(--pixel-font-primary);
+  font-size: 8px;
+  background: var(--pixel-yellow);
+  color: var(--pixel-black);
+  border: 2px solid var(--pixel-black);
+  text-transform: uppercase;
+}
+
+/* 像素进度条 */
+.pixel-progress {
+  width: 100%;
+  height: 24px;
+  background: var(--pixel-gray-light);
+  border: var(--pixel-border-width) solid var(--pixel-black);
+  position: relative;
+  overflow: hidden;
+}
+
+.pixel-progress-bar {
+  height: 100%;
+  background: var(--pixel-green);
+  position: relative;
+  transition: width 0.3s;
+}
+
+.pixel-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.2) 10px,
+    rgba(255, 255, 255, 0.2) 20px
+  );
+}
+
+/* 响应式像素尺寸调整 */
+@media (max-width: 768px) {
+  .pixel-font {
+    font-size: 10px;
+  }
+
+  .pixel-font-lg {
+    font-size: 14px;
+  }
+
+  .pixel-button {
+    padding: 10px 20px;
+    font-size: 8px;
+  }
+}

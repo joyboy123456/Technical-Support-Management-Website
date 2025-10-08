@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronRight, FileText, Settings, HelpCircle, AlertTriangle, Printer, Megaphone } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Settings, HelpCircle, AlertTriangle, Printer, Megaphone, Package } from 'lucide-react';
 import { sidebarItems, getDevices } from '../data/devices';
 
 interface SidebarProps {
@@ -38,6 +38,8 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
     switch (id) {
       case 'announcements':
         return <Megaphone className="w-4 h-4" />;
+      case 'inventory-management':
+        return <Package className="w-4 h-4" />;
       case 'software-guide':
         return <Settings className="w-4 h-4" />;
       case 'device-guide':

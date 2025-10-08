@@ -1,16 +1,16 @@
 import React from 'react';
-import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Checkbox } from './ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { getDevice, updateDevice, addMaintenanceLog, Device } from '../data/devices';
+import { getInventory, checkStockLevel, Inventory, getPrinterPaperStock, isEpsonPrinter, PrinterModel } from '../data/inventory';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { EditDeviceDialog } from './EditDeviceDialog';
 
@@ -23,52 +23,84 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
   const [device, setDevice] = React.useState<Device | undefined>(undefined);
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
-  const [checklistItems, setChecklistItems] = React.useState({
-    connection: false,
-    paper: false,
-    rails: false,
-    ink: false,
-    cover: false
-  });
+  const [inventory, setInventory] = React.useState<Inventory | null>(null);
 
   // 刷新设备数据
   const refreshDevice = React.useCallback(async () => {
-    setLoading(true);
-    const data = await getDevice(deviceId);
-    setDevice(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const data = await getDevice(deviceId);
+      setDevice(data);
+    } catch (error) {
+      console.error('Failed to fetch device:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [deviceId]);
+
+  // 加载库存数据
+  const loadInventory = React.useCallback(async () => {
+    try {
+      const data = await getInventory();
+      setInventory(data);
+    } catch (error) {
+      console.error('Failed to fetch inventory:', error);
+    }
+  }, []);
 
   // 当deviceId变化时更新设备数据
   React.useEffect(() => {
     refreshDevice();
-    // 重置检查列表状态
-    setChecklistItems({
-      connection: false,
-      paper: false,
-      rails: false,
-      ink: false,
-      cover: false
-    });
-  }, [deviceId, refreshDevice]);
+    loadInventory();
+  }, [deviceId, refreshDevice, loadInventory]);
 
+  // 加载中状态
+  if (loading) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="space-y-6 animate-pulse">
+          <div className="h-8 bg-muted rounded-lg w-48"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-64 bg-muted rounded-lg"></div>
+              <div className="h-48 bg-muted rounded-lg"></div>
+            </div>
+            <div className="space-y-6">
+              <div className="h-32 bg-muted rounded-lg"></div>
+              <div className="h-48 bg-muted rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 设备未找到
   if (!device) {
     return (
-      <div className="p-6">
-        <p>设备未找到</p>
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">🔍</div>
+          <h3 className="text-lg font-semibold mb-2">设备未找到</h3>
+          <p className="text-muted-foreground mb-6">无法找到该设备信息</p>
+          <Button onClick={onBack} variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            返回列表
+          </Button>
+        </div>
       </div>
     );
   }
 
   const getStatusBadge = (status: Device['status']) => {
-    const colors = {
-      '运行中': 'bg-green-100 text-green-800 hover:bg-green-100',
-      '离线': 'bg-gray-100 text-gray-800 hover:bg-gray-100',
-      '维护': 'bg-orange-100 text-orange-800 hover:bg-orange-100'
+    const variants = {
+      '运行中': 'success' as const,
+      '离线': 'inactive' as const,
+      '维护': 'warning' as const
     };
 
     return (
-      <Badge className={colors[status]}>
+      <Badge variant={variants[status]}>
         {status}
       </Badge>
     );
@@ -152,8 +184,8 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                     <span>{device.serial}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">操作系统:</span>
-                    <span>{device.os}</span>
+                    <span className="text-muted-foreground">打印机型号:</span>
+                    <span>{device.printerModel}</span>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -178,7 +210,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                 关联打印机
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="space-y-3">
                   <div className="flex justify-between">
@@ -201,102 +233,120 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                   </div>
                 </div>
               </div>
-
-              {/* 墨水状态 */}
-              <div>
-                <h4 className="mb-3">耗材状态</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  {Object.entries(device.printer.ink).map(([color, level]) => (
-                    <div key={color} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {color === 'C' ? '青色' : color === 'M' ? '品红' : color === 'Y' ? '黄色' : '黑色'}墨水:
-                        </span>
-                        <span>{level}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            level > 50 ? 'bg-green-500' : 
-                            level > 20 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}
-                          style={{ width: `${level}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </CardContent>
           </Card>
 
-          {/* 维护与故障 */}
+          {/* 调试间耗材库存 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                调试间耗材库存
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {inventory ? (
+                <>
+                  {/* 库存信息头 */}
+                  <div className="flex items-center justify-between pb-3 border-b">
+                    <div>
+                      <p className="text-sm font-medium">{inventory.location}</p>
+                      <p className="text-xs text-muted-foreground mt-1">最后更新: {inventory.lastUpdated}</p>
+                    </div>
+                    {(() => {
+                      const stockStatus = checkStockLevel(inventory, device.printer.model as PrinterModel);
+                      if (stockStatus.paperLow || stockStatus.inkLow) {
+                        return (
+                          <Badge variant="warning" className="flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            库存不足
+                          </Badge>
+                        );
+                      }
+                      return <Badge variant="success">库存充足</Badge>;
+                    })()}
+                  </div>
+
+                  {/* 耗材库存 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 相纸库存 - 根据打印机型号显示 */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-[10px] p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-blue-600">
+                          {device.printer.model} 相纸
+                        </h4>
+                        <Badge variant="outline" className="text-blue-600 border-blue-300">
+                          {(() => {
+                            const stock = getPrinterPaperStock(inventory, device.printer.model as PrinterModel);
+                            return Object.values(stock || {}).reduce((a, b) => a + b, 0);
+                          })()} 张
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {(() => {
+                          const stock = getPrinterPaperStock(inventory, device.printer.model as PrinterModel);
+                          if (!stock) {
+                            return <p className="text-xs text-muted-foreground">该型号暂无库存数据</p>;
+                          }
+                          return Object.entries(stock).map(([type, quantity]) => (
+                            <div key={type} className="flex justify-between text-sm">
+                              <span className="text-gray-600">{type}</span>
+                              <span className={quantity < 100 ? 'text-destructive font-medium' : ''}>{quantity} 张</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                    
+                    {/* 墨水库存 - 仅 EPSON 显示 */}
+                    {isEpsonPrinter(device.printer.model) && (
+                      <div className="bg-green-50 border border-green-200 rounded-[10px] p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-green-600">EPSON 墨水</h4>
+                          <Badge variant="outline" className="text-green-600 border-green-300">
+                            {Object.values(inventory.epsonInkStock).reduce((a, b) => a + b, 0)} 瓶
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {Object.entries(inventory.epsonInkStock).map(([color, quantity]) => {
+                            const colorName = color === 'C' ? '青色' : color === 'M' ? '品红' : color === 'Y' ? '黄色' : '黑色';
+                            return (
+                              <div key={color} className="flex justify-between text-sm">
+                                <span className="text-gray-600">{colorName}({color})</span>
+                                <span className={quantity < 3 ? 'text-destructive font-medium' : ''}>{quantity} 瓶</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 备注 */}
+                  {inventory.notes && (
+                    <div className="bg-muted/40 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">{inventory.notes}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">加载库存数据中...</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 维护与记录 */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Wrench className="w-5 h-5" />
-                耗材与记录
+                维护与记录
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* 耗材状态 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-blue-900">相纸库存</h4>
-                    <Badge variant="outline" className="text-blue-700">
-                      公司仓库
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">A4相纸</span>
-                      <span>450张</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">A3相纸</span>
-                      <span>280张</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">A6相纸</span>
-                      <span>120张</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-green-900">墨水余量</h4>
-                    <Badge variant="outline" className="text-green-700">
-                      {Math.min(device.printer.ink.C, device.printer.ink.M, device.printer.ink.Y, device.printer.ink.K)}%
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">黑色(K)</span>
-                      <span>{device.printer.ink.K}%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">青色(C)</span>
-                      <span>{device.printer.ink.C}%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">品红(M)</span>
-                      <span>{device.printer.ink.M}%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">黄色(Y)</span>
-                      <span>{device.printer.ink.Y}%</span>
-                    </div>
-                    {Math.min(device.printer.ink.C, device.printer.ink.M, device.printer.ink.Y, device.printer.ink.K) < 20 && (
-                      <div className="text-xs text-red-600 mt-2">
-                        ⚠️ 墨水不足
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* 快捷操作 */}
               <div className="flex gap-2 flex-wrap">
                 <MaintenanceDialog onAddMaintenance={handleAddMaintenance} />
@@ -348,10 +398,10 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                           <TableCell>{issue.desc}</TableCell>
                           <TableCell>
                             <Badge 
-                              className={
+                              variant={
                                 issue.status === '已解决' 
-                                  ? 'bg-green-100 text-green-800 hover:bg-green-100'
-                                  : 'bg-orange-100 text-orange-800 hover:bg-orange-100'
+                                  ? 'success'
+                                  : 'warning'
                               }
                             >
                               {issue.status || '处理中'}
@@ -366,105 +416,43 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
             </CardContent>
           </Card>
 
-          {/* 打印前检查 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>打印前检查</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid gap-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="connection" 
-                      checked={checklistItems.connection}
-                      onCheckedChange={(checked) => 
-                        setChecklistItems(prev => ({ ...prev, connection: checked as boolean }))
-                      }
-                    />
-                    <label htmlFor="connection" className="text-sm">
-                      检查设备与打印机连接线是否正常
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="paper" 
-                      checked={checklistItems.paper}
-                      onCheckedChange={(checked) => 
-                        setChecklistItems(prev => ({ ...prev, paper: checked as boolean }))
-                      }
-                    />
-                    <label htmlFor="paper" className="text-sm">
-                      确认相纸正反面放置正确
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="rails" 
-                      checked={checklistItems.rails}
-                      onCheckedChange={(checked) => 
-                        setChecklistItems(prev => ({ ...prev, rails: checked as boolean }))
-                      }
-                    />
-                    <label htmlFor="rails" className="text-sm">
-                      调整导轨宽度与纸张匹配
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="ink" 
-                      checked={checklistItems.ink}
-                      onCheckedChange={(checked) => 
-                        setChecklistItems(prev => ({ ...prev, ink: checked as boolean }))
-                      }
-                    />
-                    <label htmlFor="ink" className="text-sm">
-                      检查各色墨水液位充足
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="cover" 
-                      checked={checklistItems.cover}
-                      onCheckedChange={(checked) => 
-                        setChecklistItems(prev => ({ ...prev, cover: checked as boolean }))
-                      }
-                    />
-                    <label htmlFor="cover" className="text-sm">
-                      确认打印机前盖已关闭
-                    </label>
-                  </div>
-                </div>
-
-                {/* 操作示意图占位 */}
-                <div className="mt-6 space-y-4">
-                  <h4>操作示意图</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gray-100 rounded-lg p-4 text-center text-sm text-muted-foreground">
+          {/* 设备图片相册 */}
+          {(device.coverImage || (device.images && device.images.length > 0)) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>设备图片</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {device.coverImage && (
+                    <div>
+                      <h4 className="mb-2 text-sm text-muted-foreground">封面图</h4>
                       <ImageWithFallback 
-                        src="https://images.unsplash.com/photo-1753272691001-4d68806ac590?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21wdXRlciUyMHNlcnZlciUyMGVxdWlwbWVudHxlbnwxfHx8fDE3NTk2Njk2ODR8MA&ixlib=rb-4.1.0&q=80&w=1080" 
-                        alt="接线示意图"
-                        className="w-full h-32 object-cover rounded mb-2"
+                        src={device.coverImage}
+                        alt={`${device.name} 封面`}
+                        className="w-full h-64 object-cover rounded-xl border"
                       />
-                      接线示意图
                     </div>
-                    <div className="bg-gray-100 rounded-lg p-4 text-center text-sm text-muted-foreground">
-                      <ImageWithFallback 
-                        src="https://images.unsplash.com/photo-1723672947453-e6d09052bdf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwYXBlciUyMGxvYWRpbmclMjBwcmludGVyfGVufDF8fHx8MTc1OTY2OTY5MHww&ixlib=rb-4.1.0&q=80&w=1080" 
-                        alt="相纸放置示意图"
-                        className="w-full h-32 object-cover rounded mb-2"
-                      />
-                      相纸放置示意图
+                  )}
+                  {device.images && device.images.length > 0 && (
+                    <div>
+                      <h4 className="mb-3 text-sm text-muted-foreground">打印机图片（{device.images.length}）</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {device.images.map((img, idx) => (
+                          <ImageWithFallback 
+                            key={idx}
+                            src={img}
+                            alt={`${device.name} 图片 ${idx + 1}`}
+                            className="w-full h-32 object-cover rounded-xl border hover:scale-105 transition-all duration-200 cursor-pointer"
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* 侧边栏信息 */}
@@ -633,30 +621,19 @@ function QuickLocationUpdate({
   onLocationUpdated: () => void; 
 }) {
   const [newLocation, setNewLocation] = React.useState(currentLocation);
+  const [isEditing, setIsEditing] = React.useState(false);
 
-  const commonLocations = [
-    '杭州展厅A区',
-    '杭州展厅B区', 
-    '上海展厅A区',
-    '上海展厅B区',
-    '北京展厅A区',
-    '北京展厅B区',
-    '深圳展厅A区',
-    '深圳展厅B区',
-    '广州展厅A区',
-    '广州展厅B区',
-    '外出活动',
-    '维修中心',
-    '仓库'
-  ];
-
-  const handleLocationUpdate = async (location: string) => {
-    if (location === currentLocation) return;
+  const handleLocationUpdate = async () => {
+    if (newLocation === currentLocation) {
+      setIsEditing(false);
+      return;
+    }
     
-    const success = await updateDevice(deviceId, { location });
+    const success = await updateDevice(deviceId, { location: newLocation });
     if (success) {
       onLocationUpdated();
-      toast.success(`位置已更新为: ${location}`);
+      toast.success(`位置已更新为: ${newLocation}`);
+      setIsEditing(false);
     } else {
       toast.error('位置更新失败');
     }
@@ -665,18 +642,37 @@ function QuickLocationUpdate({
   return (
     <div className="space-y-2">
       <label className="text-xs text-muted-foreground">快速更改位置</label>
-      <Select value={currentLocation} onValueChange={handleLocationUpdate}>
-        <SelectTrigger className="h-8 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {commonLocations.map(location => (
-            <SelectItem key={location} value={location} className="text-xs">
-              {location}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {isEditing ? (
+        <div className="flex gap-1">
+          <Input
+            value={newLocation}
+            onChange={(e) => setNewLocation(e.target.value)}
+            className="h-8 text-xs"
+            placeholder="输入新位置"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleLocationUpdate();
+              if (e.key === 'Escape') setIsEditing(false);
+            }}
+          />
+          <Button size="sm" className="h-8 px-2" onClick={handleLocationUpdate}>
+            ✓
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-1">
+          <div className="flex-1 text-xs py-1 px-2 bg-muted rounded">
+            {currentLocation}
+          </div>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-8 px-2" 
+            onClick={() => setIsEditing(true)}
+          >
+            编辑
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

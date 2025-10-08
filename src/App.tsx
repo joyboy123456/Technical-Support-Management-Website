@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { HomePage } from './components/HomePage';
 import { DeviceDetail } from './components/DeviceDetail';
 import { KnowledgePage } from './components/KnowledgePages';
+import { InventoryManagement } from './components/InventoryManagement';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
@@ -27,6 +28,10 @@ export default function App() {
   const renderMainContent = () => {
     if (currentPage === 'home') {
       return <HomePage onDeviceClick={handleDeviceClick} />;
+    }
+    
+    if (currentPage === 'inventory-management') {
+      return <InventoryManagement />;
     }
     
     if (pageType === 'device') {

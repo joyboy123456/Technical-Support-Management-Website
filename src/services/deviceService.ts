@@ -8,10 +8,12 @@ function mapRowToDevice(row: any, logs: any[] = [], issues: any[] = []): Device 
     name: row.name,
     model: row.model,
     serial: row.serial,
-    os: row.os,
+    printerModel: row.printer_model_field || row.printer_model || '',
     location: row.location,
     owner: row.owner,
     status: row.status,
+    coverImage: row.cover_image,
+    images: row.images ? (Array.isArray(row.images) ? row.images : JSON.parse(row.images || '[]')) : [],
     printer: {
       model: row.printer_model,
       paper: row.printer_paper,
@@ -46,10 +48,12 @@ function mapDeviceToRow(device: Partial<Device>) {
   if (device.name !== undefined) row.name = device.name;
   if (device.model !== undefined) row.model = device.model;
   if (device.serial !== undefined) row.serial = device.serial;
-  if (device.os !== undefined) row.os = device.os;
+  if (device.printerModel !== undefined) row.printer_model_field = device.printerModel;
   if (device.location !== undefined) row.location = device.location;
   if (device.owner !== undefined) row.owner = device.owner;
   if (device.status !== undefined) row.status = device.status;
+  if (device.coverImage !== undefined) row.cover_image = device.coverImage;
+  if (device.images !== undefined) row.images = JSON.stringify(device.images);
   if (device.nextMaintenance !== undefined) row.next_maintenance = device.nextMaintenance;
   
   if (device.printer) {
@@ -193,10 +197,12 @@ export async function createDevice(device: Omit<Device, 'logs' | 'issues'>): Pro
       name: device.name,
       model: device.model,
       serial: device.serial,
-      os: device.os,
+      printer_model_field: device.printerModel,
       location: device.location,
       owner: device.owner,
       status: device.status,
+      cover_image: device.coverImage,
+      images: JSON.stringify(device.images || []),
       printer_model: device.printer.model,
       printer_paper: device.printer.paper,
       printer_connect: device.printer.connect,

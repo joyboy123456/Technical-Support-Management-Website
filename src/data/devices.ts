@@ -3,10 +3,12 @@ export interface Device {
   name: string;
   model: string;
   serial: string;
-  os: string;
+  printerModel: string; // 打印机型号（原 os 字段）
   location: string;
   owner: string;
   status: '运行中' | '离线' | '维护';
+  coverImage?: string; // 设备封面图
+  images?: string[]; // 设备相册
   printer: {
     model: string;
     paper: 'A4' | 'A3';
@@ -39,10 +41,16 @@ export const devices: Device[] = [
     name: '设备01',
     model: '魔镜6号',
     serial: 'SN-01-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '杭州展厅A区',
     owner: '张三',
     status: '运行中',
+    coverImage: 'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=800&dpr=2&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=800&dpr=2&q=80',
+      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&dpr=2&q=80',
+      'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=800&dpr=2&q=80'
+    ],
     printer: {
       model: 'EPSON-L8058',
       paper: 'A4',
@@ -62,10 +70,15 @@ export const devices: Device[] = [
     name: '设备02',
     model: '魔镜6号',
     serial: 'SN-02-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '杭州展厅B区',
     owner: '李四',
     status: '维护',
+    coverImage: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=800&dpr=2&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&dpr=2&q=80',
+      'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=800&dpr=2&q=80'
+    ],
     printer: {
       model: 'EPSON-L18058',
       paper: 'A3',
@@ -86,10 +99,11 @@ export const devices: Device[] = [
     name: '设备03',
     model: '魔镜7号',
     serial: 'SN-03-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '上海展厅A区',
     owner: '王五',
     status: '运行中',
+    coverImage: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&dpr=2&q=80',
     printer: {
       model: 'EPSON-L8058',
       paper: 'A4',
@@ -108,7 +122,7 @@ export const devices: Device[] = [
     name: '设备04',
     model: '魔镜6号',
     serial: 'SN-04-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '上海展厅B区',
     owner: '赵六',
     status: '离线',
@@ -132,7 +146,7 @@ export const devices: Device[] = [
     name: '设备05',
     model: '魔镜7号',
     serial: 'SN-05-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '北京展厅A区',
     owner: '孙七',
     status: '运行中',
@@ -154,7 +168,7 @@ export const devices: Device[] = [
     name: '设备06',
     model: '魔镜6号',
     serial: 'SN-06-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '北京展厅B区',
     owner: '周八',
     status: '维护',
@@ -176,7 +190,7 @@ export const devices: Device[] = [
     name: '设备07',
     model: '魔镜7号',
     serial: 'SN-07-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '深圳展厅A区',
     owner: '吴九',
     status: '运行中',
@@ -198,7 +212,7 @@ export const devices: Device[] = [
     name: '设备08',
     model: '魔镜6号',
     serial: 'SN-08-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '深圳展厅B区',
     owner: '郑十',
     status: '运行中',
@@ -220,7 +234,7 @@ export const devices: Device[] = [
     name: '设备09',
     model: '魔镜7号',
     serial: 'SN-09-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '广州展厅A区',
     owner: '冯十一',
     status: '离线',
@@ -244,7 +258,7 @@ export const devices: Device[] = [
     name: '设备10',
     model: '魔镜6号',
     serial: 'SN-10-2025',
-    os: 'Windows 11',
+    printerModel: 'EPSON-L8058',
     location: '广州展厅B区',
     owner: '陈十二',
     status: '运行中',
@@ -269,19 +283,17 @@ import {
   updateDeviceData, 
   addMaintenanceLogData 
 } from '../services/deviceService';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 // 设备数据的全局状态（用作缓存和降级方案）
 let devicesData = [...devices];
-let isSupabaseEnabled = true;
 
-// 检查 Supabase 是否配置
+// 检查 Supabase 是否配置（使用正确的配置检查）
 const checkSupabaseConfig = () => {
-  const hasConfig = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!hasConfig && isSupabaseEnabled) {
-    console.warn('Supabase not configured. Using local data mode.');
-    isSupabaseEnabled = false;
+  if (!isSupabaseConfigured) {
+    console.log('📦 使用本地数据模式');
   }
-  return hasConfig;
+  return isSupabaseConfigured;
 };
 
 // 更新设备信息
@@ -352,6 +364,11 @@ export const sidebarItems = [
   {
     title: '公告',
     id: 'announcements',
+    type: 'page' as const
+  },
+  {
+    title: '库存管理',
+    id: 'inventory-management',
     type: 'page' as const
   },
   {

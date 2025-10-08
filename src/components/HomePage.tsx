@@ -1,237 +1,308 @@
 import React from 'react';
-import { Search, Plus, Download, Upload } from 'lucide-react';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getDevices, Device } from '../data/devices';
+import { KpiCard, KpiCardGroup } from './KpiCard';
+import { DeviceCard } from './DeviceCard';
+import { TopToolbar } from './TopToolbar';
+import { Filters, FilterState } from './Filters';
+import { ListView } from './ListView';
+import { DeviceCardSkeleton } from './DeviceCardSkeleton';
+import { toast } from 'sonner';
 
 interface HomePageProps {
   onDeviceClick: (deviceId: string) => void;
 }
 
+/**
+ * HomePage - 重构后的设备管理中心主页
+ *
+ * 根据 Anthropic-like 设计原则完全重构:
+ * - KPI 卡: 白底+细边，可点击筛选
+ * - 顶部工具条: 统一样式
+ * - 筛选区: Chips + 保存视图
+ * - 设备展示: 网格/列表视图切换
+ * - 卡片: 极简设计，信息密度合理
+ */
 export function HomePage({ onDeviceClick }: HomePageProps) {
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
-  const [locationFilter, setLocationFilter] = React.useState<string>('all');
-  const [sortBy, setSortBy] = React.useState<string>('name');
   const [devices, setDevices] = React.useState<Device[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+
+  // 筛选状态
+  const [filters, setFilters] = React.useState<FilterState>({
+    search: '',
+    status: 'all',
+    location: 'all',
+    sortBy: 'name'
+  });
+
+  // 排序方向 (用于列表视图)
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
 
   // 刷新设备列表
-  const refreshDevices = React.useCallback(async () => {
+  const refreshDevices = React.useCallback(async (showToast = false) => {
     setLoading(true);
-    const data = await getDevices();
-    setDevices(data);
-    setLoading(false);
+    try {
+      const data = await getDevices();
+      setDevices(data);
+      if (showToast) {
+        toast.success(`已刷新，共 ${data.length} 台设备`);
+      }
+    } catch (error) {
+      toast.error('刷新失败，请重试');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // 初始加载和定期刷新数据
+  // 手动刷新
+  const handleRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refreshDevices(true);
+    setRefreshing(false);
+  }, [refreshDevices]);
+
+  // 初始加载
   React.useEffect(() => {
     refreshDevices();
-    
+
+    // 窗口聚焦时自动刷新
     const handleFocus = () => refreshDevices();
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [refreshDevices]);
 
+  // 筛选后的设备列表
   const filteredDevices = React.useMemo(() => {
-    let filtered = devices.filter(device => {
-      const matchesSearch = 
-        device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        device.serial.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        device.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        device.printer.model.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || device.status === statusFilter;
-      const matchesLocation = locationFilter === 'all' || device.location.includes(locationFilter);
-      
+    let filtered = devices.filter((device) => {
+      const matchesSearch =
+        device.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        device.serial.toLowerCase().includes(filters.search.toLowerCase()) ||
+        device.location.toLowerCase().includes(filters.search.toLowerCase()) ||
+        device.printer.model.toLowerCase().includes(filters.search.toLowerCase());
+
+      const matchesStatus = filters.status === 'all' || device.status === filters.status;
+      const matchesLocation = filters.location === 'all' || device.location.includes(filters.location);
+
       return matchesSearch && matchesStatus && matchesLocation;
     });
 
     // 排序
     filtered.sort((a, b) => {
-      switch (sortBy) {
+      const direction = sortDirection === 'asc' ? 1 : -1;
+
+      switch (filters.sortBy) {
         case 'name':
-          return a.name.localeCompare(b.name);
+          return a.name.localeCompare(b.name) * direction;
         case 'status':
-          return a.status.localeCompare(b.status);
+          return a.status.localeCompare(b.status) * direction;
         case 'location':
-          return a.location.localeCompare(b.location);
+          return a.location.localeCompare(b.location) * direction;
         case 'maintenance':
-          return new Date(a.nextMaintenance).getTime() - new Date(b.nextMaintenance).getTime();
+          return (
+            (new Date(a.nextMaintenance).getTime() - new Date(b.nextMaintenance).getTime()) *
+            direction
+          );
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [devices, searchTerm, statusFilter, locationFilter, sortBy]);
+  }, [devices, filters, sortDirection]);
 
-  const getStatusBadge = (status: Device['status']) => {
-    const variants = {
-      '运行中': 'default',
-      '离线': 'secondary',
-      '维护': 'destructive'
-    } as const;
-    
-    const colors = {
-      '运行中': 'bg-green-100 text-green-800 hover:bg-green-100',
-      '离线': 'bg-gray-100 text-gray-800 hover:bg-gray-100',
-      '维护': 'bg-orange-100 text-orange-800 hover:bg-orange-100'
+  // 统计数据
+  const stats = React.useMemo(() => {
+    return {
+      total: devices.length,
+      running: devices.filter((d) => d.status === '运行中').length,
+      maintenance: devices.filter((d) => d.status === '维护').length,
+      offline: devices.filter((d) => d.status === '离线').length
     };
+  }, [devices]);
 
-    return (
-      <Badge className={colors[status]}>
-        {status}
-      </Badge>
-    );
+  // 可用位置列表
+  const locations = React.useMemo(() => {
+    return [...new Set(devices.map((d) => d.location))];
+  }, [devices]);
+
+  // KPI 卡点击筛选
+  const handleKpiClick = (filterKey: string) => {
+    if (filterKey === 'all') {
+      setFilters((prev) => ({ ...prev, status: 'all' }));
+    } else {
+      setFilters((prev) => ({ ...prev, status: filterKey }));
+    }
+    toast.success(`已筛选: ${filterKey === 'all' ? '全部设备' : filterKey}`);
   };
 
-  const locations = [...new Set(devices.map(d => d.location))];
+  // 清除所有筛选
+  const handleClearFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+      location: 'all',
+      sortBy: 'name'
+    });
+    setSortDirection('asc');
+    toast.success('已清除所有筛选条件');
+  };
+
+  // 筛选变更
+  const handleFiltersChange = (updates: Partial<FilterState>) => {
+    setFilters((prev) => ({ ...prev, ...updates }));
+  };
+
+  // 列表视图排序
+  const handleListSort = (field: string) => {
+    if (filters.sortBy === field) {
+      // 切换排序方向
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      // 新字段，默认升序
+      setFilters((prev) => ({ ...prev, sortBy: field }));
+      setSortDirection('asc');
+    }
+  };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* 页面标题和操作区 */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="mb-2">设备管理中心</h1>
-          <p className="text-muted-foreground">管理和监控所有技术支持设备</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Upload className="w-4 h-4 mr-2" />
-            批量导入
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            导出 CSV
-          </Button>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            新建设备
-          </Button>
-        </div>
+    <div
+      className="container-constrained py-6"
+      style={{ maxWidth: 'var(--container-max-width)' }}
+    >
+      {/* 页面标题 */}
+      <div className="mb-6">
+        <h1
+          style={{
+            fontSize: 'var(--font-size-3xl)',
+            fontWeight: 'var(--font-weight-semibold)',
+            color: 'var(--text-1)',
+            marginBottom: 'var(--space-2)',
+            letterSpacing: '-0.02em'
+          }}
+        >
+          设备管理中心
+        </h1>
+        <p style={{ fontSize: 'var(--font-size-base)', color: 'var(--text-2)' }}>
+          管理和监控所有技术支持设备
+        </p>
       </div>
 
-      {/* 搜索和筛选区 */}
-      <div className="flex gap-4 mb-6 flex-wrap">
-        <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            placeholder="按设备名/序列号/位置/打印机型号搜索..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* 顶部工具条 */}
+      <TopToolbar
+        onRefresh={handleRefresh}
+        onImport={() => toast.info('导入功能开发中')}
+        onExport={() => toast.info('导出功能开发中')}
+        onCreateDevice={() => toast.info('新建设备功能开发中')}
+        isRefreshing={refreshing}
+        className="mb-6"
+      />
+
+      {/* KPI 统计卡片 */}
+      <KpiCardGroup className="mb-6">
+        <KpiCard
+          label="设备总数"
+          value={stats.total}
+          filterKey="all"
+          onClick={handleKpiClick}
+          isActive={filters.status === 'all'}
+        />
+        <KpiCard
+          label="运行中"
+          value={stats.running}
+          filterKey="运行中"
+          onClick={handleKpiClick}
+          isActive={filters.status === '运行中'}
+        />
+        <KpiCard
+          label="维护中"
+          value={stats.maintenance}
+          filterKey="维护"
+          onClick={handleKpiClick}
+          isActive={filters.status === '维护'}
+        />
+        <KpiCard
+          label="离线"
+          value={stats.offline}
+          filterKey="离线"
+          onClick={handleKpiClick}
+          isActive={filters.status === '离线'}
+        />
+      </KpiCardGroup>
+
+      {/* 筛选区 */}
+      <Filters
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        onClearFilters={handleClearFilters}
+        locations={locations}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        className="mb-6"
+      />
+
+      {/* 设备展示区 */}
+      {loading ? (
+        // 骨架屏
+        <div className="device-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <DeviceCardSkeleton key={i} />
+          ))}
         </div>
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="状态" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">所有状态</SelectItem>
-            <SelectItem value="运行中">运行中</SelectItem>
-            <SelectItem value="离线">离线</SelectItem>
-            <SelectItem value="维护">维护</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={locationFilter} onValueChange={setLocationFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="位置" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">所有位置</SelectItem>
-            {locations.map(location => (
-              <SelectItem key={location} value={location}>{location}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">按名称</SelectItem>
-            <SelectItem value="status">按状态</SelectItem>
-            <SelectItem value="location">按位置</SelectItem>
-            <SelectItem value="maintenance">按维护日期</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* 设备网格 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredDevices.map((device) => (
-          <Card 
-            key={device.id} 
-            className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => onDeviceClick(device.id)}
+      ) : filteredDevices.length === 0 ? (
+        // 空状态
+        <div
+          className="text-center py-16 fade-in"
+          style={{
+            background: 'var(--surface-2)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-subtle)'
+          }}
+        >
+          <div style={{ fontSize: '48px', marginBottom: 'var(--space-4)' }}>🔍</div>
+          <h3
+            style={{
+              fontSize: 'var(--font-size-lg)',
+              fontWeight: 'var(--font-weight-semibold)',
+              color: 'var(--text-1)',
+              marginBottom: 'var(--space-2)'
+            }}
           >
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-base">{device.name}</CardTitle>
-                {getStatusBadge(device.status)}
-              </div>
-              <p className="text-sm text-muted-foreground">{device.model}</p>
-            </CardHeader>
-            
-            <CardContent className="pt-0 space-y-2">
-              <div className="text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">位置:</span>
-                  <span>{device.location}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">负责人:</span>
-                  <span>{device.owner}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">打印机:</span>
-                  <span>{device.printer.model}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">下次维护:</span>
-                  <span>{device.nextMaintenance}</span>
-                </div>
-              </div>
-              
-              {/* 墨水余量指示器 */}
-              <div className="pt-2">
-                <div className="text-xs text-muted-foreground mb-1">墨水余量</div>
-                <div className="flex gap-1">
-                  {Object.entries(device.printer.ink).map(([color, level]) => (
-                    <div key={color} className="flex-1">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>{color}</span>
-                        <span>{level}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5">
-                        <div 
-                          className={`h-1.5 rounded-full ${
-                            level > 50 ? 'bg-green-500' : 
-                            level > 20 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}
-                          style={{ width: `${level}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredDevices.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">没有找到符合条件的设备</p>
+            没有找到符合条件的设备
+          </h3>
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-2)' }}>
+            尝试调整筛选条件或清除所有筛选
+          </p>
         </div>
+      ) : viewMode === 'grid' ? (
+        // 网格视图
+        <div className="device-grid">
+          {filteredDevices.map((device, index) => (
+            <div
+              key={device.id}
+              className="fade-in"
+              style={{
+                animationDelay: `${index * 30}ms`,
+                animationFillMode: 'backwards'
+              }}
+            >
+              <DeviceCard
+                device={device}
+                onClick={onDeviceClick}
+                onMarkMaintenance={(id) => toast.info(`标记设备 ${id} 为维护中`)}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        // 列表视图
+        <ListView
+          devices={filteredDevices}
+          onRowClick={onDeviceClick}
+          sortBy={filters.sortBy}
+          sortDirection={sortDirection}
+          onSortChange={handleListSort}
+        />
       )}
     </div>
   );

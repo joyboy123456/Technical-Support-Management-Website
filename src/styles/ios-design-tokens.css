@@ -1,0 +1,245 @@
+/**
+ * iOS 风格设计令牌
+ * 基于 Figma: pLarcIzb1aIELsn6Kwg8nw
+ */
+
+@layer base {
+  :root {
+    /* ===== 颜色系统 ===== */
+    
+    /* 品牌色 - iOS 蓝 */
+    --ios-primary: #007AFF;
+    --ios-primary-hover: #0051D5;
+    --ios-primary-light: #E5F2FF;
+    
+    /* 状态色 */
+    --ios-status-success: #34C759;
+    --ios-status-warning: #FF9500;
+    --ios-status-error: #FF3B30;
+    --ios-status-inactive: #8E8E93;
+    
+    /* 中性灰阶 */
+    --ios-gray-50: #F9F9F9;
+    --ios-gray-100: #F2F2F7;
+    --ios-gray-200: #E5E5EA;
+    --ios-gray-300: #D1D1D6;
+    --ios-gray-400: #C7C7CC;
+    --ios-gray-500: #AEAEB2;
+    --ios-gray-600: #8E8E93;
+    --ios-gray-900: #1C1C1E;
+    
+    /* 墨水颜色 */
+    --ios-ink-cyan: #00C7BE;
+    --ios-ink-magenta: #FF2D55;
+    --ios-ink-yellow: #FFCC00;
+    --ios-ink-black: #000000;
+    
+    /* ===== 字体系统 ===== */
+    
+    --ios-font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", 
+                       "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --ios-font-mono: "SF Mono", ui-monospace, Menlo, Monaco, "Courier New", monospace;
+    
+    /* 字号 */
+    --ios-text-largeTitle: 34px;
+    --ios-text-title1: 28px;
+    --ios-text-title2: 22px;
+    --ios-text-title3: 20px;
+    --ios-text-headline: 17px;
+    --ios-text-body: 17px;
+    --ios-text-callout: 16px;
+    --ios-text-subheadline: 15px;
+    --ios-text-footnote: 13px;
+    --ios-text-caption1: 12px;
+    --ios-text-caption2: 11px;
+    
+    /* 行高 */
+    --ios-leading-tight: 1.2;
+    --ios-leading-normal: 1.4;
+    --ios-leading-relaxed: 1.5;
+    
+    /* 字重 */
+    --ios-font-regular: 400;
+    --ios-font-medium: 500;
+    --ios-font-semibold: 600;
+    --ios-font-bold: 700;
+    
+    /* ===== 间距系统 (8px 网格) ===== */
+    
+    --ios-spacing-1: 4px;
+    --ios-spacing-2: 8px;
+    --ios-spacing-3: 12px;
+    --ios-spacing-4: 16px;
+    --ios-spacing-5: 20px;
+    --ios-spacing-6: 24px;
+    --ios-spacing-8: 32px;
+    --ios-spacing-10: 40px;
+    --ios-spacing-12: 48px;
+    --ios-spacing-16: 64px;
+    
+    /* ===== 圆角系统 ===== */
+    
+    --ios-radius-xs: 4px;
+    --ios-radius-sm: 8px;
+    --ios-radius-md: 12px;
+    --ios-radius-lg: 16px;
+    --ios-radius-xl: 20px;
+    --ios-radius-full: 9999px;
+    
+    /* ===== 阴影系统 ===== */
+    
+    --ios-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --ios-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+    --ios-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+    --ios-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+    --ios-shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.12);
+    
+    /* 毛玻璃效果 */
+    --ios-backdrop-blur-sm: 8px;
+    --ios-backdrop-blur-md: 16px;
+    --ios-backdrop-blur-lg: 24px;
+    
+    /* ===== 动效参数 ===== */
+    
+    --ios-duration-fast: 150ms;
+    --ios-duration-base: 200ms;
+    --ios-duration-slow: 300ms;
+    
+    --ios-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ios-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ios-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    
+    /* ===== shadcn/ui 令牌映射 ===== */
+    
+    --background: var(--ios-gray-50);
+    --foreground: var(--ios-gray-900);
+    
+    --card: #FFFFFF;
+    --card-foreground: var(--ios-gray-900);
+    
+    --popover: #FFFFFF;
+    --popover-foreground: var(--ios-gray-900);
+    
+    --primary: var(--ios-primary);
+    --primary-foreground: #FFFFFF;
+    
+    --secondary: var(--ios-gray-100);
+    --secondary-foreground: var(--ios-gray-900);
+    
+    --muted: var(--ios-gray-100);
+    --muted-foreground: var(--ios-gray-600);
+    
+    --accent: var(--ios-gray-100);
+    --accent-foreground: var(--ios-gray-900);
+    
+    --destructive: var(--ios-status-error);
+    --destructive-foreground: #FFFFFF;
+    
+    --border: var(--ios-gray-300);
+    --input: var(--ios-gray-300);
+    --ring: var(--ios-primary);
+    
+    --radius: var(--ios-radius-md);
+    
+    /* 触控尺寸 */
+    --ios-touch-min: 44px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--ios-font-system);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ===== iOS 风格工具类 ===== */
+
+@layer utilities {
+  /* 毛玻璃效果 */
+  .ios-blur-sm {
+    backdrop-filter: blur(var(--ios-backdrop-blur-sm));
+    -webkit-backdrop-filter: blur(var(--ios-backdrop-blur-sm));
+  }
+  
+  .ios-blur-md {
+    backdrop-filter: blur(var(--ios-backdrop-blur-md));
+    -webkit-backdrop-filter: blur(var(--ios-backdrop-blur-md));
+  }
+  
+  .ios-blur-lg {
+    backdrop-filter: blur(var(--ios-backdrop-blur-lg));
+    -webkit-backdrop-filter: blur(var(--ios-backdrop-blur-lg));
+  }
+  
+  /* 触控安全区 */
+  .ios-touch-target {
+    min-height: var(--ios-touch-min);
+    min-width: var(--ios-touch-min);
+  }
+  
+  /* 卡片阴影 */
+  .ios-card-shadow {
+    box-shadow: var(--ios-shadow-sm);
+    transition: box-shadow var(--ios-duration-base) var(--ios-ease-out);
+  }
+  
+  .ios-card-shadow:hover {
+    box-shadow: var(--ios-shadow-md);
+  }
+  
+  /* 平滑过渡 */
+  .ios-transition {
+    transition: all var(--ios-duration-base) var(--ios-ease-out);
+  }
+  
+  .ios-transition-fast {
+    transition: all var(--ios-duration-fast) var(--ios-ease-out);
+  }
+  
+  /* 状态标签样式 */
+  .ios-badge-success {
+    background-color: var(--ios-status-success);
+    color: white;
+    padding: 4px 12px;
+    border-radius: var(--ios-radius-sm);
+    font-size: var(--ios-text-footnote);
+    font-weight: var(--ios-font-medium);
+  }
+  
+  .ios-badge-warning {
+    background-color: var(--ios-status-warning);
+    color: white;
+    padding: 4px 12px;
+    border-radius: var(--ios-radius-sm);
+    font-size: var(--ios-text-footnote);
+    font-weight: var(--ios-font-medium);
+  }
+  
+  .ios-badge-inactive {
+    background-color: var(--ios-status-inactive);
+    color: white;
+    padding: 4px 12px;
+    border-radius: var(--ios-radius-sm);
+    font-size: var(--ios-text-footnote);
+    font-weight: var(--ios-font-medium);
+  }
+  
+  /* 墨水进度条 */
+  .ios-ink-bar {
+    height: 6px;
+    border-radius: var(--ios-radius-full);
+    transition: width var(--ios-duration-base) var(--ios-ease-out);
+  }
+  
+  .ios-ink-cyan { background-color: var(--ios-ink-cyan); }
+  .ios-ink-magenta { background-color: var(--ios-ink-magenta); }
+  .ios-ink-yellow { background-color: var(--ios-ink-yellow); }
+  .ios-ink-black { background-color: var(--ios-ink-black); }
+}

@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Device } from '../data/devices';
 
 interface EditDeviceDialogProps {
@@ -19,11 +19,13 @@ export function EditDeviceDialog({ device, open, onClose, onSave }: EditDeviceDi
     name: device.name,
     model: device.model,
     serial: device.serial,
-    os: device.os,
+    printerModel: device.printerModel,
     location: device.location,
     owner: device.owner,
     status: device.status,
-    nextMaintenance: device.nextMaintenance
+    nextMaintenance: device.nextMaintenance,
+    coverImage: device.coverImage || '',
+    images: device.images || []
   });
 
   React.useEffect(() => {
@@ -32,11 +34,13 @@ export function EditDeviceDialog({ device, open, onClose, onSave }: EditDeviceDi
         name: device.name,
         model: device.model,
         serial: device.serial,
-        os: device.os,
+        printerModel: device.printerModel,
         location: device.location,
         owner: device.owner,
         status: device.status,
-        nextMaintenance: device.nextMaintenance
+        nextMaintenance: device.nextMaintenance,
+        coverImage: device.coverImage || '',
+        images: device.images || []
       });
     }
   }, [device, open]);
@@ -60,21 +64,6 @@ export function EditDeviceDialog({ device, open, onClose, onSave }: EditDeviceDi
     onClose();
   };
 
-  const commonLocations = [
-    '杭州展厅A区',
-    '杭州展厅B区',
-    '上海展厅A区',
-    '上海展厅B区',
-    '北京展厅A区',
-    '北京展厅B区',
-    '深圳展厅A区',
-    '深圳展厅B区',
-    '广州展厅A区',
-    '广州展厅B区',
-    '外出活动',
-    '维修中心',
-    '仓库'
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -119,31 +108,23 @@ export function EditDeviceDialog({ device, open, onClose, onSave }: EditDeviceDi
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="os">操作系统</Label>
-            <Select value={formData.os} onValueChange={(value) => handleInputChange('os', value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Windows 11">Windows 11</SelectItem>
-                <SelectItem value="Windows 10">Windows 10</SelectItem>
-                <SelectItem value="Ubuntu 22.04">Ubuntu 22.04</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="printerModel">打印机型号</Label>
+            <Input
+              id="printerModel"
+              value={formData.printerModel}
+              onChange={(e) => handleInputChange('printerModel', e.target.value)}
+              placeholder="请输入打印机型号"
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="location">位置 *</Label>
-            <Select value={formData.location} onValueChange={(value) => handleInputChange('location', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="选择位置" />
-              </SelectTrigger>
-              <SelectContent>
-                {commonLocations.map(location => (
-                  <SelectItem key={location} value={location}>{location}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => handleInputChange('location', e.target.value)}
+              placeholder="请输入设备位置"
+            />
           </div>
 
           <div className="space-y-2">
@@ -178,6 +159,28 @@ export function EditDeviceDialog({ device, open, onClose, onSave }: EditDeviceDi
               value={formData.nextMaintenance}
               onChange={(e) => handleInputChange('nextMaintenance', e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="coverImage">设备封面图（URL）</Label>
+            <Input
+              id="coverImage"
+              value={formData.coverImage}
+              onChange={(e) => handleInputChange('coverImage', e.target.value)}
+              placeholder="请输入封面图片 URL"
+            />
+            {formData.coverImage && (
+              <div className="mt-2">
+                <img 
+                  src={formData.coverImage} 
+                  alt="封面预览" 
+                  className="w-full h-32 object-cover rounded border"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=800&dpr=2&q=80';
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

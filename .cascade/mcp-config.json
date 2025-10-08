@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "figma": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-figma"
+      ],
+      "env": {
+        "FIGMA_PERSONAL_ACCESS_TOKEN": "${FIGMA_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  },
+  "figma": {
+    "defaultFileKey": "pLarcIzb1aIELsn6Kwg8nw",
+    "description": "技术支持设备管理网站设计文件"
+  }
+}

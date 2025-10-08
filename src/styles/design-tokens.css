@@ -1,0 +1,293 @@
+/**
+ * Design Tokens - Anthropic-like 风格
+ * 用于设备管理中心的克制、干净、信息密度合理的界面
+ */
+
+:root {
+  /* ===== Spacing Scale ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ===== Surfaces & Backgrounds ===== */
+  --surface-1: #FFFFFF;        /* 主表面/卡片背景 */
+  --surface-2: #F7F8FA;        /* 次级背景/工具条 */
+  --surface-3: #F0F2F5;        /* 三级背景/禁用状态 */
+
+  /* ===== Borders ===== */
+  --border-subtle: #E7E9ED;    /* 1px 细边框 */
+  --border-medium: #D1D5DB;    /* 中等边框 */
+  --border-strong: #9CA3AF;    /* 强调边框 */
+
+  /* ===== Text Colors ===== */
+  --text-1: #0F172A;           /* 主文本 */
+  --text-2: #475569;           /* 次文本/标签 */
+  --text-3: #94A3B8;           /* 三级文本/占位符 */
+  --text-inverse: #FFFFFF;     /* 反色文本 */
+
+  /* ===== Status Colors (状态点) ===== */
+  --status-positive: #16A34A;  /* 运行中 - 绿色 */
+  --status-warning: #D97706;   /* 维护/临期 - 橙色 */
+  --status-neutral: #94A3B8;   /* 离线/未知 - 灰色 */
+  --status-error: #DC2626;     /* 故障/严重错误 - 红色 */
+
+  /* ===== Status Backgrounds (用于 hover/subtle 状态) ===== */
+  --status-positive-bg: #DCFCE7;
+  --status-warning-bg: #FEF3C7;
+  --status-neutral-bg: #F1F5F9;
+  --status-error-bg: #FEE2E2;
+
+  /* ===== Interactive Colors ===== */
+  --interactive-primary: #1F2937;    /* 主要交互色 */
+  --interactive-hover: #374151;      /* 悬浮状态 */
+  --interactive-active: #111827;     /* 激活状态 */
+
+  /* ===== Focus Ring ===== */
+  --focus: #1F2937;                  /* 焦点环颜色 */
+  --focus-offset: 2px;               /* 焦点环偏移 */
+
+  /* ===== Border Radius ===== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* ===== Typography ===== */
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 32px;
+  --font-size-4xl: 36px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ===== Shadows (极简风格) ===== */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.10);
+
+  /* ===== CMYK Colors (用于墨水条) ===== */
+  --ink-cyan: #00B8D4;
+  --ink-magenta: #E91E63;
+  --ink-yellow: #FFC107;
+  --ink-black: #212121;
+
+  /* ===== Grid & Layout ===== */
+  --container-max-width: 1440px;
+  --grid-gap: 16px;
+  --grid-gap-lg: 20px;
+
+  /* ===== Transitions ===== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== Utility Classes ===== */
+
+/* 低墨量斜纹警示效果 */
+.low-ink-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 0, 0, 0.06) 0,
+    rgba(0, 0, 0, 0.06) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+/* 状态点样式 */
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+}
+
+.status-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.status-dot--positive::before {
+  background-color: var(--status-positive);
+}
+
+.status-dot--warning::before {
+  background-color: var(--status-warning);
+}
+
+.status-dot--neutral::before {
+  background-color: var(--status-neutral);
+}
+
+.status-dot--error::before {
+  background-color: var(--status-error);
+}
+
+/* KPI 卡样式 */
+.kpi-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.kpi-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.kpi-card:active {
+  transform: translateY(0);
+}
+
+.kpi-card__value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-card__label {
+  font-size: var(--font-size-xs);
+  color: var(--text-2);
+  margin-top: var(--space-2);
+  font-weight: var(--font-weight-medium);
+}
+
+/* 焦点环 */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* 设备卡片 */
+.device-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.device-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* 墨水条 */
+.ink-bar {
+  height: 6px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+  background: var(--surface-2);
+}
+
+.ink-bar__fill {
+  height: 100%;
+  transition: width var(--transition-normal);
+}
+
+/* 筛选 Chip */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--text-1);
+  transition: all var(--transition-fast);
+}
+
+.filter-chip:hover {
+  background: var(--surface-3);
+}
+
+.filter-chip__close {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.filter-chip__close:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* 工具条 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  gap: var(--space-4);
+}
+
+/* 等宽数字 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 容器最大宽度 */
+.container-constrained {
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+/* 栅格布局 */
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--grid-gap);
+}
+
+@media (min-width: 1024px) {
+  .device-grid {
+    gap: var(--grid-gap-lg);
+  }
+}
