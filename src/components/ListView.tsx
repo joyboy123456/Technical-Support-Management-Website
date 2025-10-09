@@ -37,7 +37,7 @@ interface ListViewProps {
   className?: string;
 }
 
-type ColumnKey = 'name' | 'status' | 'location' | 'owner' | 'model' | 'nextMaintenance' | 'ink';
+type ColumnKey = 'name' | 'status' | 'location' | 'owner' | 'model' | 'nextMaintenance';
 
 interface Column {
   key: ColumnKey;
@@ -81,8 +81,7 @@ export function ListView({
     { key: 'location', label: '位置', sortable: true, visible: true, width: '150px' },
     { key: 'owner', label: '负责人', sortable: true, visible: true, width: '120px' },
     { key: 'model', label: '型号', sortable: false, visible: true, width: '140px' },
-    { key: 'nextMaintenance', label: '下次维护', sortable: true, visible: true, width: '120px' },
-    { key: 'ink', label: '墨水', sortable: false, visible: true, width: '180px' }
+    { key: 'nextMaintenance', label: '下次维护', sortable: true, visible: true, width: '120px' }
   ]);
 
   const [showColumnConfig, setShowColumnConfig] = React.useState(false);
@@ -279,73 +278,9 @@ function renderCell(device: Device, key: ColumnKey): React.ReactNode {
     case 'nextMaintenance':
       return device.nextMaintenance;
 
-    case 'ink':
-      return <InkLevels ink={device.printer.ink} />;
-
     default:
       return null;
   }
 }
 
-/**
- * InkLevels - 墨水等级显示 (列表视图)
- */
-interface InkLevelsProps {
-  ink: { C: number; M: number; Y: number; K: number };
-}
 
-function InkLevels({ ink }: InkLevelsProps) {
-  const colorMap = {
-    C: { name: '青', hex: 'var(--ink-cyan)' },
-    M: { name: '品', hex: 'var(--ink-magenta)' },
-    Y: { name: '黄', hex: 'var(--ink-yellow)' },
-    K: { name: '黑', hex: 'var(--ink-black)' }
-  };
-
-  return (
-    <div className="flex items-center gap-3">
-      {Object.entries(ink).map(([color, level]) => {
-        const config = colorMap[color as keyof typeof colorMap];
-        const isLow = level < 15;
-
-        return (
-          <TooltipProvider key={color}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1">
-                  <span
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: 'var(--radius-full)',
-                      background: config.hex,
-                      display: 'inline-block',
-                      flexShrink: 0
-                    }}
-                    aria-hidden="true"
-                  />
-                  <span
-                    className="tabular-nums"
-                    style={{
-                      fontSize: 'var(--font-size-xs)',
-                      color: isLow ? 'var(--status-warning)' : 'var(--text-2)',
-                      fontWeight: isLow ? 'var(--font-weight-semibold)' : 'var(--font-weight-normal)'
-                    }}
-                  >
-                    {level}%
-                  </span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {config.name}色: {level}%
-                  {isLow && ' (低于 15%)'}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
-      })}
-    </div>
-  );
-}

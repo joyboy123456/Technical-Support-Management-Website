@@ -183,38 +183,6 @@ export function DeviceCard({
         </span>
       </div>
 
-      {/* CMYK 墨水条 */}
-      <div
-        style={{
-          padding: 'var(--space-4)',
-          paddingTop: 'var(--space-3)',
-          borderTop: '1px solid var(--border-subtle)'
-        }}
-      >
-        <div
-          style={{
-            fontSize: 'var(--font-size-xs)',
-            color: 'var(--text-2)',
-            marginBottom: 'var(--space-3)',
-            fontWeight: 'var(--font-weight-medium)'
-          }}
-        >
-          墨水余量
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 'var(--space-3)'
-          }}
-        >
-          {Object.entries(device.printer.ink).map(([color, level]) => (
-            <InkBar key={color} color={color as 'C' | 'M' | 'Y' | 'K'} level={level} />
-          ))}
-        </div>
-      </div>
-
       {/* 尾部操作 (hover 显示) */}
       {isHovered && (
         <div
@@ -274,72 +242,4 @@ export function DeviceCard({
   );
 }
 
-/**
- * InkBar - 墨水条子组件
- */
-interface InkBarProps {
-  color: 'C' | 'M' | 'Y' | 'K';
-  level: number;
-}
 
-function InkBar({ color, level }: InkBarProps) {
-  const colorMap = {
-    C: { name: '青', hex: 'var(--ink-cyan)' },
-    M: { name: '品', hex: 'var(--ink-magenta)' },
-    Y: { name: '黄', hex: 'var(--ink-yellow)' },
-    K: { name: '黑', hex: 'var(--ink-black)' }
-  };
-
-  const config = colorMap[color];
-  const isLow = level < 15;
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex flex-col items-center gap-1">
-            {/* 标签 */}
-            <span
-              style={{
-                fontSize: 'var(--font-size-xs)',
-                color: 'var(--text-3)',
-                fontWeight: 'var(--font-weight-medium)'
-              }}
-            >
-              {color}
-            </span>
-
-            {/* 条 */}
-            <div
-              className={`ink-bar ${isLow ? 'low-ink-stripes' : ''}`}
-              style={{
-                width: '100%',
-                height: '6px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--surface-2)',
-                overflow: 'hidden',
-                position: 'relative'
-              }}
-            >
-              <div
-                className="ink-bar__fill"
-                style={{
-                  height: '100%',
-                  width: `${level}%`,
-                  background: config.hex,
-                  transition: 'width var(--transition-normal)'
-                }}
-              />
-            </div>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>
-            {config.name}色: {level}%
-            {isLow && ' (低于 15%)'}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}

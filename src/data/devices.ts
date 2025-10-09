@@ -362,6 +362,11 @@ export const addMaintenanceLog = async (deviceId: string, log: {
 
 export const sidebarItems = [
   {
+    title: '首页',
+    id: 'home',
+    type: 'page' as const
+  },
+  {
     title: '公告',
     id: 'announcements',
     type: 'page' as const
