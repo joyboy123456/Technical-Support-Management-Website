@@ -254,12 +254,12 @@ export function Audit() {
 
             <div>
               <Label htmlFor="action">操作类型</Label>
-              <Select value={filters.action || ''} onValueChange={(value) => handleFilterChange('action', value)}>
+              <Select value={filters.action || 'all'} onValueChange={(value) => handleFilterChange('action', value === 'all' ? '' : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="全部操作" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部操作</SelectItem>
+                  <SelectItem value="all">全部操作</SelectItem>
                   <SelectItem value="INSERT">插入</SelectItem>
                   <SelectItem value="UPDATE">更新</SelectItem>
                   <SelectItem value="DELETE">删除</SelectItem>
@@ -269,12 +269,12 @@ export function Audit() {
 
             <div>
               <Label htmlFor="table">数据表</Label>
-              <Select value={filters.table_name || ''} onValueChange={(value) => handleFilterChange('table_name', value)}>
+              <Select value={filters.table_name || 'all'} onValueChange={(value) => handleFilterChange('table_name', value === 'all' ? '' : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="全部表" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部表</SelectItem>
+                  <SelectItem value="all">全部表</SelectItem>
                   {tableCounts.map(({ table }) => (
                     <SelectItem key={table} value={table}>{table}</SelectItem>
                   ))}

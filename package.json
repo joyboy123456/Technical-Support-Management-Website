@@ -64,6 +64,8 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build"
+            "build": "vite build",
+            "backup:db": "node scripts/backup-database.js",
+            "db:exec": "node scripts/db-execute.js"
       }
 }
