@@ -2,6 +2,7 @@
 // 安装模板向导页面
 
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -52,6 +53,7 @@ const installSchema = z.object({
 type InstallFormData = z.infer<typeof installSchema>
 
 export function InstallWizard() {
+  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [compatibilityResults, setCompatibilityResults] = useState<any>(null)
   const [stockResults, setStockResults] = useState<any>(null)
@@ -595,7 +597,7 @@ export function InstallWizard() {
                 继续安装其他设备
               </Button>
               <Button
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => navigate('/dashboard')}
                 className="flex-1"
               >
                 返回仪表盘
