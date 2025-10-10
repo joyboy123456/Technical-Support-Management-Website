@@ -127,60 +127,95 @@ export function DeviceCard({
       <div
         style={{
           padding: 'var(--space-4)',
-          display: 'grid',
-          gridTemplateColumns: 'auto 1fr',
-          gap: 'var(--space-3)',
-          fontSize: 'var(--font-size-sm)'
+          display: 'flex',
+          gap: 'var(--space-4)'
         }}
       >
-        <span style={{ color: 'var(--text-2)' }}>位置</span>
-        <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
-          {device.location}
-        </span>
-
-        <span style={{ color: 'var(--text-2)' }}>负责人</span>
-        <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
-          {device.owner}
-        </span>
-
-        <span style={{ color: 'var(--text-2)' }}>型号</span>
-        <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
-          {device.model}
-        </span>
-
-        <span style={{ color: 'var(--text-2)' }}>下次维护</span>
-        <span
+        {/* 左侧信息 */}
+        <div
           style={{
-            color: 'var(--text-1)',
-            fontWeight: 'var(--font-weight-medium)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)'
+            flex: 1,
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: 'var(--space-3)',
+            fontSize: 'var(--font-size-sm)'
           }}
         >
-          {device.nextMaintenance}
-          {isMaintenanceDue && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'var(--status-warning)',
-                      display: 'inline-block'
-                    }}
-                    aria-label="即将到期"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>建议预定维护</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </span>
+          <span style={{ color: 'var(--text-2)' }}>位置</span>
+          <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
+            {device.location}
+          </span>
+
+          <span style={{ color: 'var(--text-2)' }}>负责人</span>
+          <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
+            {device.owner}
+          </span>
+
+          <span style={{ color: 'var(--text-2)' }}>型号</span>
+          <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
+            {device.model}
+          </span>
+
+          <span style={{ color: 'var(--text-2)' }}>下次维护</span>
+          <span
+            style={{
+              color: 'var(--text-1)',
+              fontWeight: 'var(--font-weight-medium)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)'
+            }}
+          >
+            {device.nextMaintenance}
+            {isMaintenanceDue && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--status-warning)',
+                        display: 'inline-block'
+                      }}
+                      aria-label="即将到期"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>建议预定维护</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </span>
+        </div>
+
+        {/* 右侧设备图片 (9:16 竖屏比例) */}
+        {device.coverImage && (
+          <div
+            style={{
+              width: '90px',
+              height: '160px',
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
+              flexShrink: 0,
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--surface-2)'
+            }}
+          >
+            <img
+              src={device.coverImage}
+              alt={`${device.name}外观`}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+              loading="lazy"
+            />
+          </div>
+        )}
       </div>
 
       {/* 尾部操作 (hover 显示) */}

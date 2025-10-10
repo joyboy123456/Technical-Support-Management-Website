@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package, Move, RotateCcw, Recycle } from 'lucide-react';
+import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package, Move, RotateCcw, Recycle, Upload, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -15,6 +15,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { EditDeviceDialog } from './EditDeviceDialog';
 import { ActionModal } from './ActionModal';
 import { SOPPanel } from './SOPPanel';
+import { uploadImage, getImageFromClipboard } from '../lib/imageUpload';
 
 interface DeviceDetailProps {
   deviceId: string;
@@ -31,6 +32,11 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
     action_type: string;
     defaultValues?: any;
   } | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = React.useState(false);
+  const [imageUrl, setImageUrl] = React.useState('');
+  const [imageType, setImageType] = React.useState<'cover' | 'gallery'>('cover');
+  const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // 刷新设备数据
   const refreshDevice = React.useCallback(async () => {
@@ -519,42 +525,276 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
           </Card>
 
           {/* 设备图片相册 */}
-          {(device.coverImage || (device.images && device.images.length > 0)) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>设备图片</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {device.coverImage && (
-                    <div>
-                      <h4 className="mb-2 text-sm text-muted-foreground">封面图</h4>
-                      <ImageWithFallback 
-                        src={device.coverImage}
-                        alt={`${device.name} 封面`}
-                        className="w-full h-64 object-cover rounded-xl border"
-                      />
-                    </div>
-                  )}
-                  {device.images && device.images.length > 0 && (
-                    <div>
-                      <h4 className="mb-3 text-sm text-muted-foreground">打印机图片（{device.images.length}）</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {device.images.map((img, idx) => (
-                          <ImageWithFallback 
-                            key={idx}
-                            src={img}
-                            alt={`${device.name} 图片 ${idx + 1}`}
-                            className="w-full h-32 object-cover rounded-xl border hover:scale-105 transition-all duration-200 cursor-pointer"
-                          />
-                        ))}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>设备图片</CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setImageUrl('');
+                  setImageType('cover');
+                  setUploadDialogOpen(true);
+                }}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                添加图片
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* 封面图 */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm text-muted-foreground">封面图</h4>
+                    {device.coverImage && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={async () => {
+                          await updateDevice(deviceId, { coverImage: undefined });
+                          await refreshDevice();
+                          toast.success('已删除封面图');
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {device.coverImage ? (
+                    <ImageWithFallback
+                      src={device.coverImage}
+                      alt={`${device.name} 封面`}
+                      className="w-full h-64 object-cover rounded-xl border"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-64 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => {
+                        setImageUrl('');
+                        setImageType('cover');
+                        setUploadDialogOpen(true);
+                      }}
+                    >
+                      <div className="text-center">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">点击添加封面图</p>
                       </div>
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+
+                {/* 相册 */}
+                <div>
+                  <h4 className="mb-3 text-sm text-muted-foreground">设备相册（{device.images?.length || 0}）</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {device.images && device.images.map((img, idx) => (
+                      <div key={idx} className="relative group">
+                        <ImageWithFallback
+                          src={img}
+                          alt={`${device.name} 图片 ${idx + 1}`}
+                          className="w-full h-32 object-cover rounded-xl border hover:scale-105 transition-all duration-200"
+                        />
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={async () => {
+                            const newImages = device.images?.filter((_, i) => i !== idx);
+                            await updateDevice(deviceId, { images: newImages });
+                            await refreshDevice();
+                            toast.success('已删除图片');
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {/* 添加按钮 */}
+                    <div
+                      className="w-full h-32 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => {
+                        setImageUrl('');
+                        setImageType('gallery');
+                        setUploadDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 图片上传对话框 */}
+          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{imageType === 'cover' ? '设置封面图' : '添加相册图片'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {/* 上传方式选择 */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* 本地上传 */}
+                  <div
+                    className="border-2 border-dashed rounded-lg p-6 cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-center text-muted-foreground">本地上传</p>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      setUploading(true);
+                      toast.loading('正在上传图片...');
+
+                      try {
+                        const result = await uploadImage(file);
+                        toast.dismiss();
+
+                        if (result.success && result.url) {
+                          setImageUrl(result.url);
+                          toast.success('图片上传成功');
+                        } else {
+                          toast.error(result.error || '上传失败');
+                        }
+                      } catch (error) {
+                        toast.dismiss();
+                        toast.error('上传失败');
+                      } finally {
+                        setUploading(false);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }
+                    }}
+                  />
+
+                  {/* 粘贴上传 */}
+                  <div
+                    className="border-2 border-dashed rounded-lg p-6 cursor-pointer hover:border-primary transition-colors"
+                    onClick={async () => {
+                      setUploading(true);
+                      toast.loading('正在读取剪贴板...');
+
+                      try {
+                        const file = await getImageFromClipboard();
+                        toast.dismiss();
+
+                        if (!file) {
+                          toast.error('剪贴板中没有图片');
+                          setUploading(false);
+                          return;
+                        }
+
+                        toast.loading('正在上传图片...');
+                        const result = await uploadImage(file);
+                        toast.dismiss();
+
+                        if (result.success && result.url) {
+                          setImageUrl(result.url);
+                          toast.success('图片上传成功');
+                        } else {
+                          toast.error(result.error || '上传失败');
+                        }
+                      } catch (error) {
+                        toast.dismiss();
+                        toast.error('读取剪贴板失败');
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                  >
+                    <Package className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-center text-muted-foreground">粘贴图片</p>
+                  </div>
+                </div>
+
+                {/* 或者使用链接 */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">或使用链接</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">图片URL</label>
+                  <Input
+                    placeholder="输入图片链接（例如：https://example.com/image.jpg）"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    disabled={uploading}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    提示：支持 Unsplash、图床等图片链接
+                  </p>
+                </div>
+
+                {/* 预览 */}
+                {imageUrl && !uploading && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">预览</label>
+                    <img
+                      src={imageUrl}
+                      alt="预览"
+                      className="w-full h-48 object-cover rounded-lg border"
+                      onError={() => toast.error('图片加载失败，请检查链接')}
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setUploadDialogOpen(false);
+                      setImageUrl('');
+                    }}
+                    disabled={uploading}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (!imageUrl.trim()) {
+                        toast.error('请上传或输入图片链接');
+                        return;
+                      }
+
+                      try {
+                        if (imageType === 'cover') {
+                          await updateDevice(deviceId, { coverImage: imageUrl });
+                        } else {
+                          const newImages = [...(device.images || []), imageUrl];
+                          await updateDevice(deviceId, { images: newImages });
+                        }
+                        await refreshDevice();
+                        setUploadDialogOpen(false);
+                        setImageUrl('');
+                        toast.success(imageType === 'cover' ? '封面图已更新' : '图片已添加');
+                      } catch (error) {
+                        toast.error('保存失败');
+                      }
+                    }}
+                    disabled={uploading || !imageUrl}
+                  >
+                    保存
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* 侧边栏信息 */}
