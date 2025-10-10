@@ -38,8 +38,8 @@ export interface Device {
 export const devices: Device[] = [
   {
     id: 'dev-01',
-    name: '设备01',
-    model: '魔镜6号',
+    name: '魔镜1号',
+    model: '魔镜1号',
     serial: 'SN-01-2025',
     printerModel: 'EPSON-L8058',
     location: '杭州展厅A区',
@@ -67,8 +67,8 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-02',
-    name: '设备02',
-    model: '魔镜6号',
+    name: '魔镜2号',
+    model: '魔镜2号',
     serial: 'SN-02-2025',
     printerModel: 'EPSON-L8058',
     location: '杭州展厅B区',
@@ -96,8 +96,8 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-03',
-    name: '设备03',
-    model: '魔镜7号',
+    name: '魔镜3号',
+    model: '魔镜3号',
     serial: 'SN-03-2025',
     printerModel: 'EPSON-L8058',
     location: '上海展厅A区',
@@ -119,8 +119,8 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-04',
-    name: '设备04',
-    model: '魔镜6号',
+    name: '魔镜4号',
+    model: '魔镜4号',
     serial: 'SN-04-2025',
     printerModel: 'EPSON-L8058',
     location: '上海展厅B区',
@@ -143,8 +143,8 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-05',
-    name: '设备05',
-    model: '魔镜7号',
+    name: '魔镜5号',
+    model: '魔镜5号',
     serial: 'SN-05-2025',
     printerModel: 'EPSON-L8058',
     location: '北京展厅A区',
@@ -165,7 +165,7 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-06',
-    name: '设备06',
+    name: '魔镜6号',
     model: '魔镜6号',
     serial: 'SN-06-2025',
     printerModel: 'EPSON-L8058',
@@ -187,7 +187,7 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-07',
-    name: '设备07',
+    name: '魔镜7号',
     model: '魔镜7号',
     serial: 'SN-07-2025',
     printerModel: 'EPSON-L8058',
@@ -209,8 +209,8 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-08',
-    name: '设备08',
-    model: '魔镜6号',
+    name: '魔镜8号',
+    model: '魔镜8号',
     serial: 'SN-08-2025',
     printerModel: 'EPSON-L8058',
     location: '深圳展厅B区',
@@ -231,8 +231,8 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-09',
-    name: '设备09',
-    model: '魔镜7号',
+    name: '魔镜9号',
+    model: '魔镜9号',
     serial: 'SN-09-2025',
     printerModel: 'EPSON-L8058',
     location: '广州展厅A区',
@@ -255,8 +255,8 @@ export const devices: Device[] = [
   },
   {
     id: 'dev-10',
-    name: '设备10',
-    model: '魔镜6号',
+    name: '魔镜10号',
+    model: '魔镜10号',
     serial: 'SN-10-2025',
     printerModel: 'EPSON-L8058',
     location: '广州展厅B区',
@@ -297,21 +297,37 @@ const checkSupabaseConfig = () => {
 };
 
 // 更新设备信息
+export const createDevice = async (newDevice: Omit<Device, 'id'>): Promise<Device | null> => {
+  const deviceId = `dev-${Date.now()}`;
+  const device: Device = {
+    id: deviceId,
+    ...newDevice
+  };
+
+  if (checkSupabaseConfig()) {
+    // TODO: 实现 Supabase 创建设备逻辑
+    console.log('Supabase 创建设备:', device);
+  }
+
+  devicesData.push(device);
+  return device;
+};
+
 export const updateDevice = async (deviceId: string, updates: Partial<Device>): Promise<boolean> => {
   if (checkSupabaseConfig()) {
     const success = await updateDeviceData(deviceId, updates);
     if (success) return true;
   }
-  
+
   // 降级到本地存储
   const deviceIndex = devicesData.findIndex(d => d.id === deviceId);
   if (deviceIndex === -1) return false;
-  
+
   devicesData[deviceIndex] = {
     ...devicesData[deviceIndex],
     ...updates
   };
-  
+
   return true;
 };
 

@@ -3,6 +3,7 @@
       "version": "0.1.0",
       "private": true,
       "dependencies": {
+            "@hookform/resolvers": "^5.2.2",
             "@radix-ui/react-accordion": "^1.2.3",
             "@radix-ui/react-alert-dialog": "^1.1.6",
             "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -29,6 +30,7 @@
             "@radix-ui/react-toggle-group": "^1.1.2",
             "@radix-ui/react-tooltip": "^1.1.8",
             "@supabase/supabase-js": "^2.39.0",
+            "@tanstack/react-query": "^5.90.2",
             "@vitejs/plugin-react": "*",
             "class-variance-authority": "^0.7.1",
             "clsx": "*",
@@ -42,11 +44,13 @@
             "react-dom": "^18.3.1",
             "react-hook-form": "^7.55.0",
             "react-resizable-panels": "^2.1.7",
+            "react-router-dom": "^7.9.4",
             "recharts": "^2.15.2",
             "sonner": "^2.0.3",
             "tailwind-merge": "*",
             "vaul": "^1.1.2",
-            "vite": "*"
+            "vite": "*",
+            "zod": "^4.1.12"
       },
       "devDependencies": {
             "@types/node": "^20.10.0",

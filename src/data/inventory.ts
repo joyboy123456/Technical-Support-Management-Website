@@ -38,25 +38,32 @@ export interface PrinterPaperStock {
   };
 }
 
-// 完整的库存数据结构
+export interface EquipmentStock {
+  routers: number;          // 路由器数量
+  powerStrips: number;      // 插板数量
+  usbCables: number;        // USB线数量
+  networkCables: number;    // 网线数量
+  adapters: number;         // 电源适配器数量
+}
+
 export interface Inventory {
   location: string;                    // 位置/调试间名称
   lastUpdated: string;                 // 最后更新时间
   paperStock: PrinterPaperStock;       // 按打印机分类的相纸库存
   epsonInkStock: EPSONInkStock;        // EPSON 墨水库存（通用）
+  equipmentStock: EquipmentStock;      // 设备配件库存
   notes?: string;                      // 备注
 }
 
-// 默认调试间库存数据
 const defaultInventory: Inventory = {
   location: '杭州调试间',
   lastUpdated: new Date().toISOString().split('T')[0],
   paperStock: {
     'EPSON-L18058': {
-      A3: 280  // A3相纸
+      A3: 280
     },
     'EPSON-L8058': {
-      A4: 450  // A4相纸
+      A4: 450
     },
     'DNP-微印创': {
       '6寸': 300,
@@ -72,10 +79,17 @@ const defaultInventory: Inventory = {
     }
   },
   epsonInkStock: {
-    C: 8,   // 8瓶青色墨水
-    M: 6,   // 6瓶品红墨水
-    Y: 7,   // 7瓶黄色墨水
-    K: 12   // 12瓶黑色墨水
+    C: 8,
+    M: 6,
+    Y: 7,
+    K: 12
+  },
+  equipmentStock: {
+    routers: 15,
+    powerStrips: 20,
+    usbCables: 25,
+    networkCables: 30,
+    adapters: 18
   },
   notes: '库存充足，定期检查有效期'
 };
@@ -223,4 +237,164 @@ export const checkStockLevel = (inventory: Inventory, printerModel?: PrinterMode
   }
 
   return { paperLow, inkLow, details };
+};
+
+export interface OutboundItem {
+  printerModel?: PrinterModel;
+  paperType?: string;
+  paperQuantity?: number;
+  inkC?: number;
+  inkM?: number;
+  inkY?: number;
+  inkK?: number;
+  routers?: number;
+  powerStrips?: number;
+  usbCables?: number;
+  networkCables?: number;
+  adapters?: number;
+}
+
+export interface ReturnInfo {
+  returnDate: string;
+  returnOperator: string;
+  returnedItems: OutboundItem;
+  equipmentDamage?: string;
+  returnNotes?: string;
+}
+
+export interface OutboundRecord {
+  id: string;
+  date: string;
+  deviceId: string;
+  deviceName: string;
+  destination: string;
+  operator: string;
+  items: OutboundItem;
+  notes?: string;
+  status: 'outbound' | 'returned';
+  returnInfo?: ReturnInfo;
+  originalLocation?: string; // 记录原始位置，用于归还时恢复
+  originalOwner?: string; // 记录原负责人，用于归还时恢复
+}
+
+let outboundRecords: OutboundRecord[] = [];
+
+export const createOutboundRecord = async (record: Omit<OutboundRecord, 'id' | 'date' | 'status'>): Promise<boolean> => {
+  try {
+    const newRecord: OutboundRecord = {
+      id: `out-${Date.now()}`,
+      date: new Date().toISOString(),
+      status: 'outbound',
+      ...record
+    };
+
+    const items = record.items;
+
+    if (items.paperType && items.paperQuantity && items.printerModel) {
+      const currentStock = inventoryData.paperStock[items.printerModel][items.paperType];
+      if (currentStock < items.paperQuantity) {
+        console.error('相纸库存不足');
+        return false;
+      }
+      inventoryData.paperStock[items.printerModel][items.paperType] = currentStock - items.paperQuantity;
+    }
+
+    if (items.inkC || items.inkM || items.inkY || items.inkK) {
+      if (items.inkC && inventoryData.epsonInkStock.C >= items.inkC) {
+        inventoryData.epsonInkStock.C -= items.inkC;
+      }
+      if (items.inkM && inventoryData.epsonInkStock.M >= items.inkM) {
+        inventoryData.epsonInkStock.M -= items.inkM;
+      }
+      if (items.inkY && inventoryData.epsonInkStock.Y >= items.inkY) {
+        inventoryData.epsonInkStock.Y -= items.inkY;
+      }
+      if (items.inkK && inventoryData.epsonInkStock.K >= items.inkK) {
+        inventoryData.epsonInkStock.K -= items.inkK;
+      }
+    }
+
+    if (items.routers && inventoryData.equipmentStock.routers >= items.routers) {
+      inventoryData.equipmentStock.routers -= items.routers;
+    }
+    if (items.powerStrips && inventoryData.equipmentStock.powerStrips >= items.powerStrips) {
+      inventoryData.equipmentStock.powerStrips -= items.powerStrips;
+    }
+    if (items.usbCables && inventoryData.equipmentStock.usbCables >= items.usbCables) {
+      inventoryData.equipmentStock.usbCables -= items.usbCables;
+    }
+    if (items.networkCables && inventoryData.equipmentStock.networkCables >= items.networkCables) {
+      inventoryData.equipmentStock.networkCables -= items.networkCables;
+    }
+    if (items.adapters && inventoryData.equipmentStock.adapters >= items.adapters) {
+      inventoryData.equipmentStock.adapters -= items.adapters;
+    }
+
+    inventoryData.lastUpdated = new Date().toISOString().split('T')[0];
+    outboundRecords.push(newRecord);
+
+    console.log('出库记录已创建:', newRecord);
+    console.log('当前库存:', inventoryData);
+
+    return true;
+  } catch (error) {
+    console.error('创建出库记录失败:', error);
+    return false;
+  }
+};
+
+export const getOutboundRecords = async (): Promise<OutboundRecord[]> => {
+  return [...outboundRecords];
+};
+
+export const returnOutboundItems = async (
+  recordId: string,
+  returnInfo: Omit<ReturnInfo, 'returnDate'>
+): Promise<boolean> => {
+  try {
+    const recordIndex = outboundRecords.findIndex(r => r.id === recordId);
+    if (recordIndex === -1) {
+      console.error('出库记录不存在');
+      return false;
+    }
+
+    const record = outboundRecords[recordIndex];
+    if (record.status === 'returned') {
+      console.error('该记录已归还');
+      return false;
+    }
+
+    const returnedItems = returnInfo.returnedItems;
+
+    if (returnedItems.paperType && returnedItems.paperQuantity && returnedItems.printerModel) {
+      inventoryData.paperStock[returnedItems.printerModel][returnedItems.paperType] += returnedItems.paperQuantity;
+    }
+
+    if (returnedItems.inkC) inventoryData.epsonInkStock.C += returnedItems.inkC;
+    if (returnedItems.inkM) inventoryData.epsonInkStock.M += returnedItems.inkM;
+    if (returnedItems.inkY) inventoryData.epsonInkStock.Y += returnedItems.inkY;
+    if (returnedItems.inkK) inventoryData.epsonInkStock.K += returnedItems.inkK;
+
+    if (returnedItems.routers) inventoryData.equipmentStock.routers += returnedItems.routers;
+    if (returnedItems.powerStrips) inventoryData.equipmentStock.powerStrips += returnedItems.powerStrips;
+    if (returnedItems.usbCables) inventoryData.equipmentStock.usbCables += returnedItems.usbCables;
+    if (returnedItems.networkCables) inventoryData.equipmentStock.networkCables += returnedItems.networkCables;
+    if (returnedItems.adapters) inventoryData.equipmentStock.adapters += returnedItems.adapters;
+
+    outboundRecords[recordIndex].status = 'returned';
+    outboundRecords[recordIndex].returnInfo = {
+      returnDate: new Date().toISOString(),
+      ...returnInfo
+    };
+
+    inventoryData.lastUpdated = new Date().toISOString().split('T')[0];
+
+    console.log('归还记录已创建:', outboundRecords[recordIndex]);
+    console.log('当前库存:', inventoryData);
+
+    return true;
+  } catch (error) {
+    console.error('创建归还记录失败:', error);
+    return false;
+  }
 };

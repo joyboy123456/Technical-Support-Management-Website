@@ -1,15 +1,37 @@
 # Supabase 集成配置指南
 
-本指南将帮助你配置 Supabase 数据库,使网站的编辑功能在 Vercel 上完美运行。
+本指南将帮助你配置 Supabase 数据库，包括新增的单据化操作系统、Edge Functions部署和安全配置。
 
 ## 📋 前置准备
 
 1. 注册 Supabase 账号: https://supabase.com
 2. 创建一个新项目
+3. 安装 Supabase CLI: https://supabase.com/docs/guides/cli
 
 ## 🗄️ 数据库设置
 
-### 步骤 1: 创建数据表
+### 步骤 1: 执行迁移脚本 (推荐)
+
+**新增**: 使用我们提供的完整迁移脚本，支持单据化操作系统：
+
+```bash
+# 方法1: 使用npm脚本 (需要配置数据库连接)
+npm run db:migrate
+
+# 方法2: 直接在Supabase SQL Editor中执行
+# 复制 supabase/migrations/0001_init.sql 文件内容并执行
+```
+
+**迁移脚本包含的功能**:
+- 完整的数据表结构（locations, assets, actions, stock_ledger等）
+- 业务逻辑函数（perform_action_transaction, check_compatibility等）
+- 数据库视图（统计和监控视图）
+- 行级安全策略（RLS）
+- 审计触发器和日志系统
+- 兼容性检查约束
+- 索引优化
+
+### 步骤 1(备选): 创建传统数据表
 
 在 Supabase 项目的 SQL Editor 中,执行以下 SQL 语句创建所需的表:
 
@@ -77,9 +99,29 @@ CREATE TRIGGER update_devices_updated_at BEFORE UPDATE ON devices
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
-### 步骤 2: 插入初始数据
+### 步骤 2: 插入种子数据
 
-执行以下 SQL 插入示例设备数据:
+**新增**: 使用完整的种子数据脚本：
+
+```bash
+# 方法1: 使用npm脚本
+npm run db:seed
+
+# 方法2: 直接在Supabase SQL Editor中执行
+# 复制 supabase/seed/seed.sql 文件内容并执行
+```
+
+**种子数据包含**:
+- 示例位置（仓库、展厅等）
+- 打印机型号和品牌信息
+- 样例设备资产
+- 耗材和码资源
+- SIM卡示例数据
+- 兼容性规则配置
+
+### 步骤 2(备选): 手动插入初始数据
+
+如果需要手动插入基础数据，执行以下 SQL:
 
 ```sql
 -- 插入设备数据
@@ -134,6 +176,51 @@ CREATE POLICY "允许所有操作 issues" ON issues FOR ALL USING (true) WITH CH
 
 **注意**: 如果需要更严格的权限控制,请根据实际需求修改策略。
 
+## 🔧 Edge Functions 部署
+
+### 部署 perform_action 函数
+
+本系统使用 Edge Functions 处理复杂的事务操作：
+
+```bash
+# 1. 安装 Supabase CLI
+npm install -g supabase
+
+# 2. 登录到 Supabase
+supabase login
+
+# 3. 链接到你的项目
+supabase link --project-ref your-project-ref
+
+# 4. 部署 Edge Functions
+supabase functions deploy perform_action --project-ref your-project-ref
+```
+
+### 验证 Edge Functions
+
+```bash
+# 测试函数是否正常工作
+curl -X POST 'https://your-project.supabase.co/functions/v1/perform_action' \
+  -H 'Authorization: Bearer your-anon-key' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action_type": "调拨",
+    "asset_id": "test-asset",
+    "from_location_id": "warehouse",
+    "to_location_id": "showroom",
+    "by_user": "测试用户"
+  }'
+```
+
+### 函数功能说明
+
+**perform_action** Edge Function 提供:
+- 事务化操作处理
+- 兼容性验证
+- 库存检查
+- 审计日志记录
+- 错误处理和回滚
+
 ## 🔑 获取 API 密钥
 
 1. 在 Supabase 项目中,进入 **Settings** > **API**
@@ -150,8 +237,18 @@ CREATE POLICY "允许所有操作 issues" ON issues FOR ALL USING (true) WITH CH
 
 2. 编辑 `.env` 文件,填入你的 Supabase 凭据:
    ```env
+   # Supabase 连接配置
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+   # 功能开关（可选）
+   VITE_ENABLE_AUDIT=true
+   VITE_ENABLE_ALERTS=true
+   VITE_ENABLE_SOP=true
+
+   # 性能配置（可选）
+   VITE_QUERY_STALE_TIME=300000
+   VITE_QUERY_CACHE_TIME=600000
    ```
 
 3. 启动开发服务器:
@@ -173,11 +270,42 @@ CREATE POLICY "允许所有操作 issues" ON issues FOR ALL USING (true) WITH CH
 
 部署完成后,测试以下功能:
 
+### 基础功能验证
 - ✅ 查看设备列表
 - ✅ 编辑设备信息
 - ✅ 添加维护记录
 - ✅ 快速更新设备位置
 - ✅ 刷新页面后数据保持
+
+### 新增功能验证
+- ✅ 统计看板数据展示正常
+- ✅ 单据化操作（借用、调拨、安装等）
+- ✅ 兼容性检查（DNP只允许专码）
+- ✅ 审计日志记录和查看
+- ✅ SOP流程跟踪
+- ✅ 安装向导功能
+- ✅ 库存实时更新
+- ✅ 告警和通知系统
+
+### 数据库功能验证
+```sql
+-- 1. 验证迁移脚本执行成功
+SELECT tablename FROM pg_tables WHERE schemaname = 'public';
+
+-- 2. 验证视图创建成功
+SELECT viewname FROM pg_views WHERE schemaname = 'public';
+
+-- 3. 验证函数创建成功
+SELECT routine_name FROM information_schema.routines
+WHERE routine_schema = 'public' AND routine_type = 'FUNCTION';
+
+-- 4. 测试 perform_action_transaction 函数
+SELECT perform_action_transaction(jsonb_build_object(
+  'action_type', '调拨',
+  'asset_id', 'test-asset',
+  'by_user', '测试用户'
+));
+```
 
 ## 🔄 降级方案
 
@@ -202,6 +330,7 @@ CREATE POLICY "允许所有操作 issues" ON issues FOR ALL USING (true) WITH CH
 1. 检查环境变量是否正确配置
 2. 查看浏览器控制台是否有错误信息
 3. 确认 Supabase RLS 策略已正确设置
+4. 验证数据库迁移是否成功执行
 
 ### 问题: 连接超时
 
@@ -210,8 +339,58 @@ CREATE POLICY "允许所有操作 issues" ON issues FOR ALL USING (true) WITH CH
 2. 确认网络连接正常
 3. 查看 Supabase 项目状态页面
 
+### 问题: Edge Functions 调用失败
+
+**解决方案**:
+1. 检查 Edge Functions 是否成功部署
+```bash
+supabase functions list --project-ref your-project-ref
+```
+2. 查看函数日志
+```bash
+supabase functions logs perform_action --project-ref your-project-ref
+```
+3. 验证函数URL和权限配置
+
+### 问题: 兼容性检查不工作
+
+**解决方案**:
+1. 确认 compatibilities 表数据已正确插入
+2. 检查 check_compatibility 函数是否存在
+3. 验证 printer_models 和 consumables 表的关联关系
+
+### 问题: 统计数据不准确
+
+**解决方案**:
+1. 检查数据库视图是否创建成功
+```sql
+SELECT viewname FROM pg_views WHERE schemaname = 'public';
+```
+2. 验证 stock_ledger 表的数据完整性
+3. 检查 audit_log 表的触发器是否正常工作
+
+### 问题: SOP流程无法显示
+
+**解决方案**:
+1. 确认 sops 和 sop_steps 表已创建并包含数据
+2. 检查资产类型、品牌、型号是否匹配
+3. 验证 SOP 查询逻辑和权限设置
+
 ## 📚 相关资源
 
+### 官方文档
 - [Supabase 文档](https://supabase.com/docs)
+- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
+- [PostgreSQL Row Level Security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)
 - [Vite 环境变量](https://vitejs.dev/guide/env-and-mode.html)
 - [Vercel 环境变量](https://vercel.com/docs/concepts/projects/environment-variables)
+
+### 项目文档
+- [DESIGN.md](./DESIGN.md) - 系统架构和设计决策
+- [README.md](./README.md) - 项目概述和快速开始
+- [package.json](./package.json) - NPM 脚本和依赖
+
+### 开发工具
+- [React Query 文档](https://tanstack.com/query/latest)
+- [TailwindCSS 文档](https://tailwindcss.com/docs)
+- [shadcn/ui 组件库](https://ui.shadcn.com)

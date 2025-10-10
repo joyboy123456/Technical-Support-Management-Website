@@ -74,11 +74,32 @@ export function InventoryManagement() {
   // 快速调整墨水数量
   const adjustInk = (color: string, delta: number) => {
     if (!editedInventory) return;
-    
+
     // @ts-ignore
     const currentValue = editedInventory.epsonInkStock[color] || 0;
     const newValue = Math.max(0, currentValue + delta);
     handleInkChange(color, newValue.toString());
+  };
+
+  // 更新设备配件数量
+  const handleEquipmentChange = (equipmentType: string, value: string) => {
+    if (!editedInventory) return;
+
+    const quantity = parseInt(value) || 0;
+    const newInventory = { ...editedInventory };
+    // @ts-ignore
+    newInventory.equipmentStock[equipmentType] = quantity;
+    setEditedInventory(newInventory);
+  };
+
+  // 快速调整设备配件数量
+  const adjustEquipment = (equipmentType: string, delta: number) => {
+    if (!editedInventory) return;
+
+    // @ts-ignore
+    const currentValue = editedInventory.equipmentStock[equipmentType] || 0;
+    const newValue = Math.max(0, currentValue + delta);
+    handleEquipmentChange(equipmentType, newValue.toString());
   };
 
   // 保存更改
@@ -303,6 +324,65 @@ export function InventoryManagement() {
                       </Button>
                       
                       <span className="text-xs text-muted-foreground min-w-[30px]">瓶</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 设备配件库存管理 */}
+      <div className="space-y-6 mt-8">
+        <h2 className="text-xl font-semibold">设备配件库存</h2>
+
+        <Card className="anthropic-card-shadow">
+          <CardHeader>
+            <CardTitle className="text-base">配件与耗材</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(editedInventory.equipmentStock).map(([equipmentType, quantity]) => {
+                const equipmentNames: Record<string, string> = {
+                  'routers': '路由器',
+                  'powerStrips': '插板',
+                  'usbCables': 'USB线',
+                  'networkCables': '网线',
+                  'adapters': '电源适配器'
+                };
+
+                return (
+                  <div key={equipmentType} className="space-y-2">
+                    <label className="text-sm font-medium">{equipmentNames[equipmentType]}</label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => adjustEquipment(equipmentType, -1)}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+
+                      <Input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => handleEquipmentChange(equipmentType, e.target.value)}
+                        className={`text-center ${quantity < 5 ? 'border-destructive' : ''}`}
+                        min="0"
+                      />
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => adjustEquipment(equipmentType, 1)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+
+                      <span className="text-xs text-muted-foreground min-w-[30px]">个</span>
                     </div>
                   </div>
                 );

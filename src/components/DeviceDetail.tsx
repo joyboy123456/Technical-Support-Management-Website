@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package } from 'lucide-react';
+import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package, Move, RotateCcw, Recycle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -13,6 +13,8 @@ import { getDevice, updateDevice, addMaintenanceLog, Device } from '../data/devi
 import { getInventory, checkStockLevel, Inventory, getPrinterPaperStock, isEpsonPrinter, PrinterModel } from '../data/inventory';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { EditDeviceDialog } from './EditDeviceDialog';
+import { ActionModal } from './ActionModal';
+import { SOPPanel } from './SOPPanel';
 
 interface DeviceDetailProps {
   deviceId: string;
@@ -24,6 +26,11 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [inventory, setInventory] = React.useState<Inventory | null>(null);
+  const [actionModalOpen, setActionModalOpen] = React.useState(false);
+  const [selectedAction, setSelectedAction] = React.useState<{
+    action_type: string;
+    defaultValues?: any;
+  } | null>(null);
 
   // 刷新设备数据
   const refreshDevice = React.useCallback(async () => {
@@ -125,13 +132,69 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
       date: new Date().toISOString().split('T')[0],
       ...maintenanceData
     });
-    
+
     if (success) {
       await refreshDevice();
       toast.success('维护记录已添加');
     } else {
       toast.error('添加失败');
     }
+  };
+
+  // 快捷操作处理函数
+  const handleQuickAction = (actionType: string) => {
+    let defaultValues = {};
+
+    switch (actionType) {
+      case '借用':
+        defaultValues = {
+          action_type: '借用',
+          asset_id: deviceId,
+          asset_type: device?.deviceType || '打印机',
+          from_location_id: '', // 需要从设备当前位置获取
+        };
+        break;
+      case '调拨':
+        defaultValues = {
+          action_type: '调拨',
+          asset_id: deviceId,
+          asset_type: device?.deviceType || '打印机',
+        };
+        break;
+      case '更换耗材':
+        defaultValues = {
+          action_type: '安装',
+          asset_id: deviceId,
+          asset_type: device?.deviceType || '打印机',
+        };
+        break;
+      case '报修':
+        defaultValues = {
+          action_type: '报修',
+          asset_id: deviceId,
+          asset_type: device?.deviceType || '打印机',
+        };
+        break;
+      default:
+        defaultValues = {
+          action_type: actionType,
+          asset_id: deviceId,
+          asset_type: device?.deviceType || '打印机',
+        };
+    }
+
+    setSelectedAction({
+      action_type: actionType,
+      defaultValues
+    });
+    setActionModalOpen(true);
+  };
+
+  const handleActionSuccess = () => {
+    setActionModalOpen(false);
+    setSelectedAction(null);
+    refreshDevice();
+    toast.success('操作已成功完成');
   };
 
 
@@ -150,15 +213,54 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
             {getStatusBadge(device.status)}
           </div>
         </div>
-        
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setEditDialogOpen(true)}
-        >
-          <Edit className="w-4 h-4 mr-2" />
-          编辑设备
-        </Button>
+
+        <div className="flex items-center gap-2">
+          {/* 快捷操作按钮 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickAction('借用')}
+            className="flex items-center gap-1"
+          >
+            <User className="w-4 h-4" />
+            借用
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickAction('调拨')}
+            className="flex items-center gap-1"
+          >
+            <Move className="w-4 h-4" />
+            调拨
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickAction('更换耗材')}
+            className="flex items-center gap-1"
+          >
+            <RotateCcw className="w-4 h-4" />
+            更换耗材
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickAction('报修')}
+            className="flex items-center gap-1"
+          >
+            <AlertCircle className="w-4 h-4" />
+            报修
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditDialogOpen(true)}
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            编辑设备
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -522,15 +624,40 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* SOP 标准操作程序 */}
+          <SOPPanel
+            assetId={deviceId}
+            assetType={device.deviceType || '打印机'}
+            brand={device.printer?.brand}
+            model={device.printer?.model}
+          />
         </div>
       </div>
-      
+
       {/* 编辑设备对话框 */}
-      <EditDeviceDialog 
+      <EditDeviceDialog
         device={device}
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
         onSave={handleSaveDevice}
+      />
+
+      {/* 操作单据对话框 */}
+      <ActionModal
+        open={actionModalOpen}
+        onClose={() => {
+          setActionModalOpen(false);
+          setSelectedAction(null);
+        }}
+        onSuccess={handleActionSuccess}
+        defaultValues={selectedAction?.defaultValues}
+        contextAsset={device ? {
+          id: deviceId,
+          type: device.deviceType || '打印机',
+          name: device.name,
+          model_id: device.printer?.id // 假设有这个字段
+        } : undefined}
       />
     </div>
   );
