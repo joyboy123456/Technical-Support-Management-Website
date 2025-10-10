@@ -59,6 +59,13 @@ function KnowledgePageWrapper() {
   return <KnowledgePage pageId={pageId} />;
 }
 
+// 主页面包装器
+function HomePageWrapper() {
+  const navigate = useNavigate();
+
+  return <HomePage onDeviceClick={(id) => navigate(`/device?id=${id}`)} />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -66,7 +73,7 @@ export default function App() {
         <Layout>
           <Routes>
             {/* 主页面 */}
-            <Route path="/" element={<HomePage onDeviceClick={(id) => window.location.href = `/device?id=${id}`} />} />
+            <Route path="/" element={<HomePageWrapper />} />
 
             {/* 新增功能页面 */}
             <Route path="/dashboard" element={<Dashboard />} />
