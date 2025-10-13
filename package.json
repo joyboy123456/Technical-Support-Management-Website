@@ -66,6 +66,8 @@
       "scripts": {
             "dev": "vite",
             "build": "vite build",
+            "setup": "node scripts/setup-env.js",
+            "test:db": "node scripts/test-database.js",
             "backup:db": "node scripts/backup-database.js",
             "db:exec": "node scripts/db-execute.js"
       }

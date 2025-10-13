@@ -1,0 +1,18 @@
+=== Vercel 环境变量配置值（直接复制） ===
+
+变量 1:
+Key: VITE_SUPABASE_URL
+Value: https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
+
+---
+
+变量 2:
+Key: VITE_SUPABASE_ANON_KEY
+Value: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC1hMmUyeHV1ZGNhc29lNDR0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjAwNjU2MTMsImV4cCI6MjA3NTY0MTYxM30.keZ6_HXm3pgWaWZdD_2OFbGff89Gf6RDTM_b1340tiI
+
+---
+
+注意：
+- 每个值必须是单独一行
+- 不要有前后空格
+- 不要换行
