@@ -1,7 +1,9 @@
 // 调试间耗材库存数据
+import { isSupabaseConfigured } from '../lib/supabase';
+import { fetchInventory, updateInventoryData } from '../services/inventoryService';
 
 // 打印机型号枚举
-export type PrinterModel = 
+export type PrinterModel =
   | 'EPSON-L18058'  // A3
   | 'EPSON-L8058'   // A4
   | 'DNP-微印创'
@@ -101,7 +103,17 @@ let inventoryData: Inventory = { ...defaultInventory };
  * 获取调试间库存信息
  */
 export const getInventory = async (): Promise<Inventory> => {
-  // 模拟异步操作
+  // 如果 Supabase 已配置，从数据库获取
+  if (isSupabaseConfigured) {
+    const dbInventory = await fetchInventory();
+    if (dbInventory) {
+      // 更新内存数据为数据库数据
+      inventoryData = { ...dbInventory };
+      return dbInventory;
+    }
+  }
+
+  // 降级：从内存获取
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({ ...inventoryData });
@@ -114,12 +126,26 @@ export const getInventory = async (): Promise<Inventory> => {
  */
 export const updateInventory = async (updates: Partial<Inventory>): Promise<boolean> => {
   try {
+    // 更新内存数据
     inventoryData = {
       ...inventoryData,
       ...updates,
       lastUpdated: new Date().toISOString().split('T')[0]
     };
-    console.log('库存已更新:', inventoryData);
+
+    // 如果 Supabase 已配置,持久化到数据库
+    if (isSupabaseConfigured) {
+      const success = await updateInventoryData(inventoryData);
+      if (success) {
+        console.log('✅ 库存已更新并保存到数据库:', inventoryData);
+      } else {
+        console.warn('⚠️ 库存已更新到内存，但数据库保存失败');
+      }
+      return success;
+    }
+
+    // 降级：仅更新内存
+    console.log('库存已更新（仅内存）:', inventoryData);
     return true;
   } catch (error) {
     console.error('更新库存失败:', error);
