@@ -55,12 +55,6 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
-# 远程数据库连接配置
-[db.remote]
-# 从 Supabase 项目设置中获取
-# Settings > Database > Connection String
-database_url = "postgresql://postgres:[YOUR-PASSWORD]@db.sbp-a2e2xuudcasoe44t.supabase.opentrust.net:5432/postgres"
-
 # Edge Functions 配置
 [functions]
 # 函数部署配置

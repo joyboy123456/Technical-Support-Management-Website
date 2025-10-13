@@ -70,5 +70,8 @@
             "test:db": "node scripts/test-database.js",
             "backup:db": "node scripts/backup-database.js",
             "db:exec": "node scripts/db-execute.js"
+            ,"migrate": "node scripts/db-migrate.js"
+            ,"migrate:status": "node scripts/db-migrate.js status"
+            ,"migrate:reset": "node scripts/db-migrate.js reset"
       }
 }
