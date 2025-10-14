@@ -68,6 +68,8 @@
             "build": "vite build",
             "setup": "node scripts/setup-env.js",
             "test:db": "node scripts/test-database.js",
+            "test:sync": "node scripts/test-supabase-sync.js",
+            "diagnose": "node scripts/diagnose-connection.js",
             "backup:db": "node scripts/backup-database.js",
             "db:exec": "node scripts/db-execute.js"
             ,"migrate": "node scripts/db-migrate.js"
