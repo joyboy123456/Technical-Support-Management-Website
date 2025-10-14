@@ -55,15 +55,15 @@
 
 ```
 项目 ID: sbp-a2e2xuudcasoe44t
-项目 URL: https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
+项目 URL: https://your-project-id.supabase.co
 控制台: https://supabase.opentrust.net
 ```
 
 ### 环境变量（本地和 Vercel 都需要）
 
 ```env
-VITE_SUPABASE_URL=https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
-VITE_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC1hMmUyeHV1ZGNhc29lNDR0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjAwNjU2MTMsImV4cCI6MjA3NTY0MTYxM30.keZ6_HXm3pgWaWZdD_2OFbGff89Gf6RDTM_b1340tiI
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_actual_supabase_anon_key_here
 ```
 
 ⚠️ **重要：** 必须使用 `VITE_` 前缀（不是 `NEXT_PUBLIC_`），因为项目使用 Vite 构建工具。

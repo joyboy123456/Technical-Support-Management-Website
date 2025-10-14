@@ -40,7 +40,7 @@
 
 ```
 Name: VITE_SUPABASE_URL
-Value: https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
+Value: https://your-project-id.supabase.co
 Environments: ✓ Production  ✓ Preview  ✓ Development
 ```
 
@@ -52,7 +52,7 @@ Environments: ✓ Production  ✓ Preview  ✓ Development
 
 ```
 Name: VITE_SUPABASE_ANON_KEY
-Value: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC1hMmUyeHV1ZGNhc29lNDR0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjAwNjU2MTMsImV4cCI6MjA3NTY0MTYxM30.keZ6_HXm3pgWaWZdD_2OFbGff89Gf6RDTM_b1340tiI
+Value: your_actual_supabase_anon_key_here
 Environments: ✓ Production  ✓ Preview  ✓ Development
 ```
 
@@ -221,8 +221,8 @@ git push origin main
 
 # 2. 验证环境变量值
 # 确保 URL 和 KEY 没有多余的空格或引号
-# 正确：https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
-# 错误："https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net"
+# 正确：https://your-project-id.supabase.co
+# 错误："https://your-project-id.supabase.co"
 
 # 3. 检查 Supabase 数据库配置
 # 参考 SUPABASE_SETUP.md 确认 RLS 策略已配置

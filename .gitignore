@@ -31,3 +31,11 @@ dist-ssr
 # Supabase
 supabase/.temp/
 .supabase/
+
+# Environment backups
+.env.backup.*
+*.env.backup
+
+# Sensitive configuration files
+vercel-env-values.txt
+*-env-values.txt

@@ -35,8 +35,8 @@ function question(query) {
 
 // 默认配置
 const DEFAULT_CONFIG = {
-  VITE_SUPABASE_URL: 'https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net',
-  VITE_SUPABASE_ANON_KEY: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC1hMmUyeHV1ZGNhc29lNDR0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjAwNjU2MTMsImV4cCI6MjA3NTY0MTYxM30.keZ6_HXm3pgWaWZdD_2OFbGff89Gf6RDTM_b1340tiI'
+  VITE_SUPABASE_URL: 'https://your-project-id.supabase.co',
+  VITE_SUPABASE_ANON_KEY: 'your_actual_supabase_anon_key_here'
 };
 
 async function main() {
@@ -123,7 +123,7 @@ async function main() {
     const dbPassword = await question('密码: ');
     
     if (dbPassword.trim()) {
-      config.SUPABASE_DB_URL = `postgresql://postgres:${dbPassword.trim()}@db.sbp-a2e2xuudcasoe44t.supabase.opentrust.net:5432/postgres`;
+      config.SUPABASE_DB_URL = `postgresql://postgres:${dbPassword.trim()}@db.your-project-id.supabase.co:5432/postgres`;
     }
   }
 

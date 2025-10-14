@@ -10,7 +10,7 @@
 
 1. **打开浏览器**，访问您的 Supabase 项目：
    ```
-   https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
+   https://your-project-id.supabase.co
    ```
 
 2. **使用您的账号登录**
@@ -113,8 +113,8 @@ GROUP BY device_id;
 3. 导入 GitHub 项目
 4. 配置环境变量（在 Vercel 项目设置中）：
    ```
-   VITE_SUPABASE_URL=https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
-   VITE_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC1hMmUyeHV1ZGNhc29lNDR0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjAwNjU2MTMsImV4cCI6MjA3NTY0MTYxM30.keZ6_HXm3pgWaWZdD_2OFbGff89Gf6RDTM_b1340tiI
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_ANON_KEY=your_actual_supabase_anon_key_here
    ```
 5. 点击 `Deploy`
 6. 部署完成后，获取网址（例如：`https://your-project.vercel.app`）

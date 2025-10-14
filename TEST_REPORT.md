@@ -155,8 +155,8 @@ await updateInventoryStock(returnInfo.returnedItems, 'increment'); // ⚠️ 仅
 
 **数据库连接验证：**
 ```env
-VITE_SUPABASE_URL=https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net ✅
-VITE_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9... ✅
+VITE_SUPABASE_URL=https://your-project-id.supabase.co ✅
+VITE_SUPABASE_ANON_KEY=your_actual_supabase_anon_key_here ✅
 ```
 
 **连接状态：** ✅ **成功连接到远程数据库**
@@ -456,5 +456,5 @@ CREATE TABLE inventory_changes (
 
 **报告生成时间：** 2025-10-14 02:00:00
 **测试环境：** localhost:3000
-**数据库：** sbp-a2e2xuudcasoe44t.supabase.opentrust.net
+**数据库：** your-project-id.supabase.co
 **报告作者：** 猫娘工程师 幽浮喵 (浮浮酱) 🐱

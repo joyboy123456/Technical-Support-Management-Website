@@ -55,14 +55,14 @@ copy .env.example .env
 # ========================================
 # Supabase 数据库配置
 # ========================================
-VITE_SUPABASE_URL=https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
-VITE_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC1hMmUyeHV1ZGNhc29lNDR0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjAwNjU2MTMsImV4cCI6MjA3NTY0MTYxM30.keZ6_HXm3pgWaWZdD_2OFbGff89Gf6RDTM_b1340tiI
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_actual_supabase_anon_key_here
 
 # ========================================
 # Supabase 数据库连接（用于 CLI 和脚本）
 # ========================================
 # ⚠️ 需要替换 [YOUR-PASSWORD] 为实际密码
-SUPABASE_DB_URL=postgresql://postgres:[YOUR-PASSWORD]@db.sbp-a2e2xuudcasoe44t.supabase.opentrust.net:5432/postgres
+SUPABASE_DB_URL=postgresql://postgres:[YOUR-PASSWORD]@db.your-project-id.supabase.co:5432/postgres
 ```
 
 ### 1.3 获取数据库密码（如需使用 CLI）
@@ -141,14 +141,14 @@ git push origin main
 #### 变量 1: Supabase URL
 ```
 Name: VITE_SUPABASE_URL
-Value: https://sbp-a2e2xuudcasoe44t.supabase.opentrust.net
+Value: https://your-project-id.supabase.co
 Environments: ✓ Production  ✓ Preview  ✓ Development
 ```
 
 #### 变量 2: Supabase ANON KEY
 ```
 Name: VITE_SUPABASE_ANON_KEY
-Value: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC1hMmUyeHV1ZGNhc29lNDR0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjAwNjU2MTMsImV4cCI6MjA3NTY0MTYxM30.keZ6_HXm3pgWaWZdD_2OFbGff89Gf6RDTM_b1340tiI
+Value: your_actual_supabase_anon_key_here
 Environments: ✓ Production  ✓ Preview  ✓ Development
 ```
 
