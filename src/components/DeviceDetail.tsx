@@ -1,13 +1,14 @@
 import React from 'react';
-import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package, Move, RotateCcw, Recycle, Upload, X } from 'lucide-react';
+import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package, Move, RotateCcw, Recycle, Upload, X, Tag } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { getDevice, updateDevice, addMaintenanceLog, Device } from '../data/devices';
 import { getInventory, checkStockLevel, Inventory, getPrinterPaperStock, isEpsonPrinter, PrinterModel } from '../data/inventory';
@@ -868,9 +869,9 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
           {/* SOP 标准操作程序 */}
           <SOPPanel
             assetId={deviceId}
-            assetType={device.deviceType || '打印机'}
-            brand={device.printer?.brand}
-            model={device.printer?.model}
+            assetType='打印机'
+            brand={device.model}
+            model={device.printer.model}
           />
         </div>
       </div>
@@ -896,7 +897,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
           id: deviceId,
           type: device.deviceType || '打印机',
           name: device.name,
-          model_id: device.printer?.id // 假设有这个字段
+          model_id: deviceId
         } : undefined}
       />
     </div>

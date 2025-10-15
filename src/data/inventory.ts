@@ -233,12 +233,14 @@ export const checkStockLevel = (inventory: Inventory, printerModel?: PrinterMode
   // 如果指定了打印机型号，只检查该型号的相纸
   if (printerModel) {
     const stock = inventory.paperStock[printerModel];
-    Object.entries(stock).forEach(([type, quantity]) => {
-      if (quantity < 100) {
-        paperLow = true;
-        details.push(`${getPrinterDisplayName(printerModel)} ${type}相纸库存不足 (${quantity}张)`);
-      }
-    });
+    if (stock && typeof stock === 'object') {
+      Object.entries(stock).forEach(([type, quantity]) => {
+        if (quantity < 100) {
+          paperLow = true;
+          details.push(`${getPrinterDisplayName(printerModel)} ${type}相纸库存不足 (${quantity}张)`);
+        }
+      });
+    }
   } else {
     // 检查所有打印机的相纸库存
     Object.entries(inventory.paperStock).forEach(([model, stock]) => {

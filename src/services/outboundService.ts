@@ -23,6 +23,62 @@ let localOutboundRecords: OutboundRecord[] = [];
 let nextRecordId = 1;
 
 /**
+ * 检查设备是否已有未归还的出库记录
+ */
+async function checkExistingOutbound(deviceId: string): Promise<{
+  hasOutbound: boolean;
+  outboundDate?: string;
+  destination?: string;
+}> {
+  try {
+    if (isSupabaseConfigured) {
+      // 从 Supabase 检查
+      const { data, error } = await supabase
+        .from('outbound_records')
+        .select('created_at, destination')
+        .eq('device_id', deviceId)
+        .eq('status', 'outbound')
+        .limit(1)
+        .single();
+
+      if (error) {
+        // 如果没有找到记录，error.code 会是 'PGRST116'
+        if (error.code === 'PGRST116') {
+          return { hasOutbound: false };
+        }
+        throw error;
+      }
+
+      if (data) {
+        return {
+          hasOutbound: true,
+          outboundDate: new Date(data.created_at).toLocaleString('zh-CN'),
+          destination: data.destination
+        };
+      }
+      return { hasOutbound: false };
+    } else {
+      // 从本地内存检查
+      const existingRecord = localOutboundRecords.find(
+        r => r.deviceId === deviceId && r.status === 'outbound'
+      );
+      if (existingRecord) {
+        return {
+          hasOutbound: true,
+          outboundDate: new Date(existingRecord.date).toLocaleString('zh-CN'),
+          destination: existingRecord.destination
+        };
+      }
+      return { hasOutbound: false };
+    }
+  } catch (error) {
+    console.error('检查出库记录失败:', error);
+    // 出错时保守处理，返回 false 以免阻止正常出库
+    return { hasOutbound: false };
+  }
+}
+
+/**
  * 创建出库记录并更新库存
  */
 export async function createOutboundRecord(
@@ -37,7 +93,16 @@ export async function createOutboundRecord(
     const originalLocation = device.location;
     const originalOwner = device.owner;
 
-    // 2. 检查库存是否充足
+    // 2. 检查该设备是否已有未归还的出库记录
+    const existingOutbound = await checkExistingOutbound(record.deviceId);
+    if (existingOutbound.hasOutbound) {
+      return { 
+        success: false, 
+        error: `该设备已有未归还的出库记录（出库时间: ${existingOutbound.outboundDate}, 目的地: ${existingOutbound.destination}），请先归还后再出库` 
+      };
+    }
+
+    // 3. 检查库存是否充足
     const stockCheck = await checkStock(record.items);
     if (!stockCheck.sufficient) {
       return { success: false, error: `库存不足: ${stockCheck.message}` };

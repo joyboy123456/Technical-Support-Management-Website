@@ -7,6 +7,7 @@ export interface Device {
   location: string;
   owner: string;
   status: '运行中' | '离线' | '维护';
+  deviceType?: string; // 设备类型（如：二次元机、普通机等）
   coverImage?: string; // 设备封面图
   images?: string[]; // 设备相册
   printer: {
@@ -33,6 +34,14 @@ export interface Device {
     desc: string;
     status?: '处理中' | '已解决';
   }>;
+}
+
+export interface DeviceType {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  sortOrder: number;
 }
 
 export const devices: Device[] = [

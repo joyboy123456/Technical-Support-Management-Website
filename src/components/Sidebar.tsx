@@ -20,8 +20,8 @@ import {
   X,
   PackageMinus
 } from 'lucide-react';
-import { sidebarItems, getDevices, createDevice, updateDevice } from '../data/devices';
-import { toast } from 'sonner';
+import { sidebarItems, getDevices, createDevice, updateDevice, Device } from '../data/devices';
+import { CreateDeviceDialog } from './CreateDeviceDialog';
 
 interface SidebarProps {
   currentPage?: string;
@@ -37,6 +37,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   const [devices, setDevices] = React.useState<any[]>([]);
   const [editingDeviceId, setEditingDeviceId] = React.useState<string | null>(null);
   const [editingName, setEditingName] = React.useState<string>('');
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
 
   // 扩展的导航项目（包含新功能）
   const extendedSidebarItems = [
@@ -55,31 +56,20 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   }, []);
 
   // 创建新设备
-  const handleCreateDevice = async () => {
-    const deviceCount = devices.length + 1;
-    const newDevice = await createDevice({
-      name: `设备${String(deviceCount).padStart(2, '0')}`,
-      model: '魔镜6号',
-      serial: `SN-${String(deviceCount).padStart(2, '0')}-2025`,
-      printerModel: 'EPSON-L8058',
-      location: '未设置',
-      owner: '未分配',
-      status: '离线',
-      logs: [],
-      issues: [],
-      printer: {
-        model: 'EPSON-L8058',
-        paper: 'A4',
-        connect: 'Wi-Fi',
-        paperStock: 0,
-        ink: { C: 0, M: 0, Y: 0, K: 0 }
-      },
-      nextMaintenance: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    });
+  const handleCreateDevice = () => {
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateDialogClose = () => setCreateDialogOpen(false);
+
+  const handleCreateDeviceSubmit = React.useCallback(async (deviceInput: Omit<Device, 'id'>) => {
+    const newDevice = await createDevice(deviceInput);
     if (newDevice) {
       await refreshDevices();
+    } else {
+      throw new Error('创建设备失败');
     }
-  };
+  }, [refreshDevices]);
 
   // 开始编辑设备名称
   const startEditingDevice = (deviceId: string, currentName: string) => {
@@ -173,119 +163,128 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   };
 
   return (
-    <div className="w-60 bg-[rgba(250,250,250,1)] border-r border-sidebar-border h-screen overflow-y-auto">
-      <div className="p-6">
-        <h2 className="text-sidebar-foreground mb-6">设备管理中心</h2>
-        
-        <nav className="space-y-1">
-          {extendedSidebarItems.map((item) => (
-            <div key={item.id}>
-              {item.type === 'group' ? (
-                <div>
-                  <button
-                    onClick={() => toggleGroup(item.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent rounded-md transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      {getIcon(item.id)}
-                      <span>{item.title}</span>
-                    </div>
-                    {expandedGroups[item.id] ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                  </button>
+    <>
+      <div className="w-60 bg-[rgba(250,250,250,1)] border-r border-sidebar-border h-screen overflow-y-auto">
+        <div className="p-6">
+          <h2 className="text-sidebar-foreground mb-6">设备管理中心</h2>
+          
+          <nav className="space-y-1">
+            {extendedSidebarItems.map((item) => (
+              <div key={item.id}>
+                {item.type === 'group' ? (
+                  <div>
+                    <button
+                      onClick={() => toggleGroup(item.id)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent rounded-md transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        {getIcon(item.id)}
+                        <span>{item.title}</span>
+                      </div>
+                      {expandedGroups[item.id] ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
 
-                  {expandedGroups[item.id] && item.id === 'device-list' && (
-                    <div className="ml-6 mt-1 space-y-1">
-                      <button
-                        onClick={handleCreateDevice}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border border-dashed border-sidebar-border"
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>新建设备</span>
-                      </button>
-                      {devices.map((device) => (
-                        <div
-                          key={device.id}
-                          className="relative"
+                    {expandedGroups[item.id] && item.id === 'device-list' && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        <button
+                          onClick={handleCreateDevice}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border border-dashed border-sidebar-border"
                         >
+                          <Plus className="w-3 h-3" />
+                          <span>新建设备</span>
+                        </button>
+                        {devices.map((device) => (
                           <div
-                            className={`group flex items-center gap-1 px-3 py-2 rounded-md transition-colors text-sm ${
-                              location.pathname === '/device' && new URLSearchParams(location.search).get('id') === device.id
-                                ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                            }`}
+                            key={device.id}
+                            className="relative"
                           >
-                            {editingDeviceId === device.id ? (
-                              <>
-                                <input
-                                  type="text"
-                                  value={editingName}
-                                  onChange={(e) => setEditingName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') saveDeviceName();
-                                    if (e.key === 'Escape') cancelEditing();
-                                  }}
-                                  className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={saveDeviceName}
-                                  className="p-1 hover:bg-green-100 rounded"
-                                >
-                                  <Check className="w-3 h-3 text-green-600" />
-                                </button>
-                                <button
-                                  onClick={cancelEditing}
-                                  className="p-1 hover:bg-red-100 rounded"
-                                >
-                                  <X className="w-3 h-3 text-red-600" />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => handleDeviceClick(device.id)}
-                                  className="flex-1 text-left"
-                                >
-                                  {device.name}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startEditingDevice(device.id, device.name);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-sidebar-accent rounded transition-opacity"
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                              </>
-                            )}
+                            <div
+                              className={`group flex items-center gap-1 px-3 py-2 rounded-md transition-colors text-sm ${
+                                location.pathname === '/device' && new URLSearchParams(location.search).get('id') === device.id
+                                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                              }`}
+                            >
+                              {editingDeviceId === device.id ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    value={editingName}
+                                    onChange={(e) => setEditingName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') saveDeviceName();
+                                      if (e.key === 'Escape') cancelEditing();
+                                    }}
+                                    className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={saveDeviceName}
+                                    className="p-1 hover:bg-green-100 rounded"
+                                  >
+                                    <Check className="w-3 h-3 text-green-600" />
+                                  </button>
+                                  <button
+                                    onClick={cancelEditing}
+                                    className="p-1 hover:bg-red-100 rounded"
+                                  >
+                                    <X className="w-3 h-3 text-red-600" />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleDeviceClick(device.id)}
+                                    className="flex-1 text-left"
+                                  >
+                                    {device.name}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startEditingDevice(device.id, device.name);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-sidebar-accent rounded transition-opacity"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleNavigation(item)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                    isActive(item)
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  }`}
-                >
-                  {getIcon(item.id)}
-                  <span>{item.title}</span>
-                </button>
-              )}
-            </div>
-          ))}
-        </nav>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleNavigation(item)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                      isActive(item)
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    }`}
+                  >
+                    {getIcon(item.id)}
+                    <span>{item.title}</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
       </div>
-    </div>
+      <CreateDeviceDialog
+        open={createDialogOpen}
+        onClose={handleCreateDialogClose}
+        onCreate={async (device) => {
+          await handleCreateDeviceSubmit(device);
+        }}
+      />
+    </>
   );
 }
