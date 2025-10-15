@@ -139,7 +139,7 @@ export function Dashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{assets.total}</div>
+            <div className="text-2xl font-bold" data-testid="dashboard-total-assets">{assets.total}</div>
             <p className="text-xs text-muted-foreground">
               可用: {assets.available} | 维修: {assets.maintenance}
             </p>
@@ -152,7 +152,7 @@ export function Dashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{assets.utilizationRate}%</div>
+            <div className="text-2xl font-bold" data-testid="dashboard-utilization">{assets.utilizationRate}%</div>
             <p className="text-xs text-muted-foreground">
               设备整体使用率
             </p>
@@ -165,7 +165,7 @@ export function Dashboard() {
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">{inventory.lowStockItems}</div>
+            <div className="text-2xl font-bold text-red-500" data-testid="dashboard-low-stock">{inventory.lowStockItems}</div>
             <p className="text-xs text-muted-foreground">
               需要补充的耗材项目
             </p>
@@ -178,7 +178,7 @@ export function Dashboard() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{maintenance.totalRecords}</div>
+            <div className="text-2xl font-bold" data-testid="dashboard-maintenance">{maintenance.totalRecords}</div>
             <p className="text-xs text-muted-foreground">
               本月维护操作次数
             </p>

@@ -290,7 +290,8 @@ import {
   fetchDevices, 
   fetchDevice, 
   updateDeviceData, 
-  addMaintenanceLogData 
+  addMaintenanceLogData,
+  createDevice as createDeviceRecord
 } from '../services/deviceService';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -314,8 +315,19 @@ export const createDevice = async (newDevice: Omit<Device, 'id'>): Promise<Devic
   };
 
   if (checkSupabaseConfig()) {
-    // TODO: 实现 Supabase 创建设备逻辑
-    console.log('Supabase 创建设备:', device);
+    try {
+      const { logs, issues, ...devicePayload } = device;
+      const createdId = await createDeviceRecord(devicePayload);
+      if (createdId) {
+        const persisted = await fetchDevice(createdId);
+        if (persisted) {
+          devicesData.push(persisted);
+          return persisted;
+        }
+      }
+    } catch (error) {
+      console.error('Supabase 创建设备失败，回退至本地模式:', error);
+    }
   }
 
   devicesData.push(device);

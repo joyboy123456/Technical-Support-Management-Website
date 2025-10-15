@@ -101,6 +101,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
             <Label htmlFor="device-name">设备名称 *</Label>
             <Input
               id="device-name"
+              data-testid="create-device-name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="请输入设备名称"
@@ -111,7 +112,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
           <div className="space-y-2">
             <Label htmlFor="device-model">设备型号</Label>
             <Select value={formData.model} onValueChange={(value) => handleInputChange('model', value)}>
-              <SelectTrigger id="device-model">
+              <SelectTrigger id="device-model" data-testid="create-device-model">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -126,6 +127,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
             <Label htmlFor="device-serial">序列号</Label>
             <Input
               id="device-serial"
+              data-testid="create-device-serial"
               value={formData.serial}
               onChange={(e) => handleInputChange('serial', e.target.value)}
               placeholder="请输入序列号，不填将自动生成"
@@ -135,7 +137,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
           <div className="space-y-2">
             <Label htmlFor="printer-model">打印机型号</Label>
             <Select value={formData.printerModel} onValueChange={(value) => handleInputChange('printerModel', value)}>
-              <SelectTrigger id="printer-model">
+              <SelectTrigger id="printer-model" data-testid="create-device-printer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -150,6 +152,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
             <Label htmlFor="device-location">位置 *</Label>
             <Input
               id="device-location"
+              data-testid="create-device-location"
               value={formData.location}
               onChange={(e) => handleInputChange('location', e.target.value)}
               placeholder="请输入设备所在位置"
@@ -160,6 +163,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
             <Label htmlFor="device-owner">负责人 *</Label>
             <Input
               id="device-owner"
+              data-testid="create-device-owner"
               value={formData.owner}
               onChange={(e) => handleInputChange('owner', e.target.value)}
               placeholder="请输入负责人姓名"
@@ -194,6 +198,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
             <Label htmlFor="device-cover">封面图片（可选）</Label>
             <Input
               id="device-cover"
+              data-testid="create-device-cover"
               value={formData.coverImage}
               onChange={(e) => handleInputChange('coverImage', e.target.value)}
               placeholder="请输入图片 URL"
@@ -204,7 +209,7 @@ export function CreateDeviceDialog({ open, onClose, onCreate }: CreateDeviceDial
             <Button variant="outline" onClick={onClose} disabled={submitting}>
               取消
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
+            <Button data-testid="create-device-submit" onClick={handleSubmit} disabled={submitting}>
               {submitting ? '创建中...' : '创建设备'}
             </Button>
           </div>

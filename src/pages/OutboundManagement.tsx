@@ -241,6 +241,7 @@ export function OutboundManagement() {
             <div>
               <Label>归还操作员 *</Label>
               <Input
+                data-testid="return-operator"
                 value={returnOperator}
                 onChange={(e) => setReturnOperator(e.target.value)}
                 placeholder="例如：张三"
@@ -273,6 +274,7 @@ export function OutboundManagement() {
                             type="number"
                             min="0"
                             max={returningRecord.items.paperQuantity}
+                            data-testid="return-paper-qty"
                             value={returnedItems.paperQuantity || ""}
                             onChange={(e) => handleReturnItemChange("paperQuantity", e.target.value)}
                             className="text-center"
@@ -525,6 +527,7 @@ export function OutboundManagement() {
 
             <div className="flex gap-2 pt-4">
               <Button
+                data-testid="return-submit"
                 onClick={handleReturnSubmit}
                 className="flex items-center gap-2"
               >
@@ -558,6 +561,7 @@ export function OutboundManagement() {
                 outboundRecords.map((record) => (
                   <div
                     key={record.id}
+                    data-testid="outbound-record-card"
                     className={`border rounded-lg p-4 space-y-2 ${record.status === "returned" ? "bg-green-50" : ""}`}
                   >
                     <div className="flex justify-between items-start">
@@ -580,6 +584,7 @@ export function OutboundManagement() {
                         </p>
                         {record.status === "outbound" && (
                           <Button
+                            data-testid="outbound-return-button"
                             size="sm"
                             variant="outline"
                             className="mt-2"
@@ -677,7 +682,7 @@ export function OutboundManagement() {
               <div>
                 <Label>设备 *</Label>
                 <Select value={deviceId} onValueChange={setDeviceId}>
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="outbound-device-select">
                     <SelectValue placeholder="选择设备" />
                   </SelectTrigger>
                   <SelectContent>
@@ -693,6 +698,7 @@ export function OutboundManagement() {
               <div>
                 <Label>目的地 *</Label>
                 <Input
+                  data-testid="outbound-destination"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   placeholder="例如：上海展厅"
@@ -702,6 +708,7 @@ export function OutboundManagement() {
               <div>
                 <Label>操作员 *</Label>
                 <Input
+                  data-testid="outbound-operator"
                   value={operator}
                   onChange={(e) => setOperator(e.target.value)}
                   placeholder="例如：张三"
@@ -711,6 +718,7 @@ export function OutboundManagement() {
               <div>
                 <Label>备注</Label>
                 <Input
+                  data-testid="outbound-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="可选"
@@ -730,7 +738,7 @@ export function OutboundManagement() {
                   value={printerModel}
                   onValueChange={handlePrinterModelChange}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="outbound-printer-select">
                     <SelectValue placeholder="选择打印机型号" />
                   </SelectTrigger>
                   <SelectContent>
@@ -748,7 +756,7 @@ export function OutboundManagement() {
                   <div>
                     <Label>相纸类型</Label>
                     <Select value={paperType} onValueChange={setPaperType}>
-                      <SelectTrigger>
+                      <SelectTrigger data-testid="outbound-paper-type">
                         <SelectValue placeholder="选择相纸类型" />
                       </SelectTrigger>
                       <SelectContent>
@@ -767,6 +775,7 @@ export function OutboundManagement() {
                     <Input
                       type="number"
                       min="0"
+                      data-testid="outbound-paper-qty"
                       value={items.paperQuantity || ""}
                       onChange={(e) =>
                         handleItemChange("paperQuantity", e.target.value)
@@ -913,6 +922,7 @@ export function OutboundManagement() {
 
           <div className="lg:col-span-2 flex justify-end">
             <Button
+              data-testid="outbound-submit"
               onClick={handleSubmit}
               size="lg"
               className="flex items-center gap-2"

@@ -132,6 +132,7 @@ export function TopToolbar({
 
       {/* 右侧主操作 */}
       <Button
+        data-testid="toolbar-create-device"
         size="sm"
         onClick={onCreateDevice}
         aria-label="新建设备"

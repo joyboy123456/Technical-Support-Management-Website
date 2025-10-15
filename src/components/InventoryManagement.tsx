@@ -177,6 +177,7 @@ export function InventoryManagement() {
             </Button>
           )}
           <Button 
+            data-testid="inventory-save"
             onClick={handleSave} 
             disabled={!hasChanges || saving}
             className="flex items-center gap-2"
@@ -249,6 +250,7 @@ export function InventoryManagement() {
                       </Button>
                       
                       <Input
+                        data-testid={`inventory-paper-${printerModel.replace(/\s+/g, '-').replace(/\//g, '-')}-${paperType.replace(/\s+/g, '-').replace(/\//g, '-')}`}
                         type="number"
                         value={quantity}
                         onChange={(e) => handlePaperChange(printerModel, paperType, e.target.value)}
@@ -307,6 +309,7 @@ export function InventoryManagement() {
                       </Button>
                       
                       <Input
+                        data-testid={`inventory-ink-${color}`}
                         type="number"
                         value={quantity}
                         onChange={(e) => handleInkChange(color, e.target.value)}
@@ -366,6 +369,7 @@ export function InventoryManagement() {
                       </Button>
 
                       <Input
+                        data-testid={`inventory-equipment-${equipmentType}`}
                         type="number"
                         value={quantity}
                         onChange={(e) => handleEquipmentChange(equipmentType, e.target.value)}

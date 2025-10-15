@@ -54,6 +54,7 @@
             "zod": "^4.1.12"
       },
       "devDependencies": {
+            "@playwright/test": "^1.56.0",
             "@types/node": "^20.10.0",
             "@types/react": "^19.2.0",
             "@types/react-dom": "^19.2.0",
@@ -71,9 +72,11 @@
             "test:sync": "node scripts/test-supabase-sync.js",
             "diagnose": "node scripts/diagnose-connection.js",
             "backup:db": "node scripts/backup-database.js",
-            "db:exec": "node scripts/db-execute.js"
-            ,"migrate": "node scripts/db-migrate.js"
-            ,"migrate:status": "node scripts/db-migrate.js status"
-            ,"migrate:reset": "node scripts/db-migrate.js reset"
+            "db:exec": "node scripts/db-execute.js",
+            "migrate": "node scripts/db-migrate.js",
+            "migrate:status": "node scripts/db-migrate.js status",
+            "migrate:reset": "node scripts/db-migrate.js reset",
+            "test:e2e": "playwright test",
+            "test:e2e:ui": "playwright test --ui"
       }
 }

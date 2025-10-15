@@ -209,7 +209,7 @@ export function Audit() {
           <p className="text-gray-600 mt-1">系统操作记录和数据变更追踪</p>
         </div>
 
-        <Button onClick={exportAuditLogs} className="flex items-center gap-2">
+        <Button data-testid="audit-export" onClick={exportAuditLogs} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
           导出日志
         </Button>
@@ -243,6 +243,7 @@ export function Audit() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
+                  data-testid="audit-search-input"
                   id="search"
                   placeholder="搜索操作者或表名"
                   className="pl-10"
@@ -327,7 +328,7 @@ export function Audit() {
           <CardTitle>审计记录</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
+          <Table data-testid="audit-table">
             <TableHeader>
               <TableRow>
                 <TableHead>时间</TableHead>
@@ -366,6 +367,7 @@ export function Audit() {
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
+                          data-testid="audit-detail-button"
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedLog(log)}
