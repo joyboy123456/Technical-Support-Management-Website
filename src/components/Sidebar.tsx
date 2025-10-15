@@ -21,6 +21,7 @@ import {
   PackageMinus
 } from 'lucide-react';
 import { sidebarItems, getDevices, createDevice, updateDevice } from '../data/devices';
+import { toast } from 'sonner';
 
 interface SidebarProps {
   currentPage?: string;
@@ -95,6 +96,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       setEditingName('');
     }
   };
+
 
   // 取消编辑
   const cancelEditing = () => {
@@ -207,57 +209,61 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                       {devices.map((device) => (
                         <div
                           key={device.id}
-                          className={`group flex items-center gap-1 px-3 py-2 rounded-md transition-colors text-sm ${
-                            location.pathname === '/device' && new URLSearchParams(location.search).get('id') === device.id
-                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                              : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                          }`}
+                          className="relative"
                         >
-                          {editingDeviceId === device.id ? (
-                            <>
-                              <input
-                                type="text"
-                                value={editingName}
-                                onChange={(e) => setEditingName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') saveDeviceName();
-                                  if (e.key === 'Escape') cancelEditing();
-                                }}
-                                className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
-                                autoFocus
-                              />
-                              <button
-                                onClick={saveDeviceName}
-                                className="p-1 hover:bg-green-100 rounded"
-                              >
-                                <Check className="w-3 h-3 text-green-600" />
-                              </button>
-                              <button
-                                onClick={cancelEditing}
-                                className="p-1 hover:bg-red-100 rounded"
-                              >
-                                <X className="w-3 h-3 text-red-600" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleDeviceClick(device.id)}
-                                className="flex-1 text-left"
-                              >
-                                {device.name}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startEditingDevice(device.id, device.name);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-sidebar-accent rounded transition-opacity"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                            </>
-                          )}
+                          <div
+                            className={`group flex items-center gap-1 px-3 py-2 rounded-md transition-colors text-sm ${
+                              location.pathname === '/device' && new URLSearchParams(location.search).get('id') === device.id
+                                ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                            }`}
+                          >
+                            {editingDeviceId === device.id ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') saveDeviceName();
+                                    if (e.key === 'Escape') cancelEditing();
+                                  }}
+                                  className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={saveDeviceName}
+                                  className="p-1 hover:bg-green-100 rounded"
+                                >
+                                  <Check className="w-3 h-3 text-green-600" />
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  className="p-1 hover:bg-red-100 rounded"
+                                >
+                                  <X className="w-3 h-3 text-red-600" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleDeviceClick(device.id)}
+                                  className="flex-1 text-left"
+                                >
+                                  {device.name}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditingDevice(device.id, device.name);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-sidebar-accent rounded transition-opacity"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
