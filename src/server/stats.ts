@@ -1,7 +1,9 @@
 // src/server/stats.ts
 // 统计数据服务
 
-import { supabase } from '../lib/supabase'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { getDevices } from '../data/devices'
+import type { Device } from '../data/devices'
 
 export interface AssetStats {
   total: number
@@ -49,101 +51,8 @@ export async function getPrinterStats(): Promise<{
   byLocation: LocationStats[]
   byBrandModel: BrandModelStats[]
 }> {
-  try {
-    // 总体统计
-    const { data: overviewData, error: overviewError } = await supabase
-      .from('assets')
-      .select('status')
-      .eq('asset_type', '打印机')
-
-    if (overviewError) throw overviewError
-
-    const overview: AssetStats = {
-      total: overviewData?.length || 0,
-      available: 0,
-      inUse: 0,
-      maintenance: 0,
-      borrowed: 0
-    }
-
-    overviewData?.forEach(item => {
-      switch (item.status) {
-        case '可用':
-          overview.available++
-          break
-        case '使用中':
-          overview.inUse++
-          break
-        case '维修中':
-          overview.maintenance++
-          break
-        case '借出':
-          overview.borrowed++
-          break
-        default:
-          overview[item.status] = (overview[item.status] || 0) + 1
-      }
-    })
-
-    // 按位置统计
-    const { data: locationData, error: locationError } = await supabase
-      .from('assets')
-      .select(`
-        location_id,
-        locations!inner(name)
-      `)
-      .eq('asset_type', '打印机')
-
-    if (locationError) throw locationError
-
-    const locationCounts = new Map<string, { name: string; count: number }>()
-    locationData?.forEach(item => {
-      const key = item.location_id
-      const existing = locationCounts.get(key)
-      if (existing) {
-        existing.count++
-      } else {
-        locationCounts.set(key, {
-          name: item.locations.name,
-          count: 1
-        })
-      }
-    })
-
-    const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([id, data]) => ({
-      locationId: id,
-      locationName: data.name,
-      count: data.count
-    }))
-
-    // 按品牌型号统计 - 使用视图
-    const { data: brandModelData, error: brandModelError } = await supabase
-      .from('v_printer_counts')
-      .select('*')
-
-    if (brandModelError) throw brandModelError
-
-    const byBrandModel: BrandModelStats[] = brandModelData?.map(item => ({
-      brand: item.brand,
-      model: item.model,
-      count: item.count,
-      status: item.status
-    })) || []
-
-    return {
-      overview,
-      byLocation,
-      byBrandModel
-    }
-
-  } catch (error) {
-    console.error('获取打印机统计错误:', error)
-    return {
-      overview: { total: 0, available: 0, inUse: 0, maintenance: 0, borrowed: 0 },
-      byLocation: [],
-      byBrandModel: []
-    }
-  }
+  // 统一通过设备数据计算统计，确保出库操作同步反映到看板
+  return buildPrinterStatsFromDevices()
 }
 
 /**
@@ -153,67 +62,20 @@ export async function getRouterStats(): Promise<{
   overview: AssetStats
   byLocation: LocationStats[]
 }> {
-  try {
-    // 总体统计
-    const { data: overviewData, error: overviewError } = await supabase
-      .from('assets')
-      .select('status')
-      .eq('asset_type', '路由器')
+  const fallbackStats = await buildRouterStatsFromDevices()
 
-    if (overviewError) throw overviewError
+  if (fallbackStats.overview.total > 0) {
+    return fallbackStats
+  }
 
-    const overview: AssetStats = {
-      total: overviewData?.length || 0,
-      available: 0,
-      inUse: 0,
-      maintenance: 0,
-      borrowed: 0
-    }
-
-    overviewData?.forEach(item => {
-      switch (item.status) {
-        case '可用':
-          overview.available++
-          break
-        case '使用中':
-          overview.inUse++
-          break
-        case '维修中':
-          overview.maintenance++
-          break
-        case '借出':
-          overview.borrowed++
-          break
-        default:
-          overview[item.status] = (overview[item.status] || 0) + 1
-      }
-    })
-
-    // 使用视图获取按位置统计
-    const { data: locationData, error: locationError } = await supabase
-      .from('v_router_counts')
-      .select('*')
-
-    if (locationError) throw locationError
-
-    const byLocation: LocationStats[] = locationData?.map(item => ({
-      locationId: '', // 视图中不包含ID，这里置空
-      locationName: item.location_name,
-      count: item.count
-    })) || []
-
-    return {
-      overview,
-      byLocation
-    }
-
-  } catch (error) {
-    console.error('获取路由器统计错误:', error)
-    return {
-      overview: { total: 0, available: 0, inUse: 0, maintenance: 0, borrowed: 0 },
-      byLocation: []
+  if (isSupabaseConfigured) {
+    const supabaseStats = await fetchRouterStatsFromSupabase()
+    if (supabaseStats.overview.total > 0 || supabaseStats.byLocation.length > 0) {
+      return supabaseStats
     }
   }
+
+  return fallbackStats
 }
 
 /**
@@ -452,4 +314,216 @@ export async function getDashboardSummary() {
     console.error('获取仪表盘汇总错误:', error)
     throw error
   }
+}
+
+/**
+ * 使用设备数据生成打印机统计（适用于本地/降级模式）
+ */
+async function buildPrinterStatsFromDevices(): Promise<{
+  overview: AssetStats
+  byLocation: LocationStats[]
+  byBrandModel: BrandModelStats[]
+}> {
+  const devices = await getDevices()
+  const printerDevices = devices.filter(device => !!device.printerModel && !isRouterDevice(device))
+
+  const overview: AssetStats = {
+    total: printerDevices.length,
+    available: 0,
+    inUse: 0,
+    maintenance: 0,
+    borrowed: 0
+  }
+
+  const locationCounts = new Map<string, number>()
+  const brandModelCounts = new Map<string, { brand: string; model: string; count: number }>()
+
+  printerDevices.forEach(device => {
+    switch (device.status) {
+      case '运行中':
+      case '使用中':
+        overview.inUse++
+        break
+      case '维护':
+      case '维修中':
+        overview.maintenance++
+        break
+      case '离线':
+      case '可用':
+        overview.available++
+        break
+      default:
+        overview[device.status] = (overview[device.status] || 0) + 1
+    }
+
+    const locationKey = device.location || '未指定位置'
+    locationCounts.set(locationKey, (locationCounts.get(locationKey) ?? 0) + 1)
+
+    const brand = device.printerModel || '未知品牌'
+    const model = device.model || '未知型号'
+    const brandModelKey = `${brand}|${model}`
+    const existingBrandModel = brandModelCounts.get(brandModelKey)
+    if (existingBrandModel) {
+      existingBrandModel.count++
+    } else {
+      brandModelCounts.set(brandModelKey, { brand, model, count: 1 })
+    }
+  })
+
+  const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
+    locationId: locationName,
+    locationName,
+    count
+  }))
+
+  const byBrandModel: BrandModelStats[] = Array.from(brandModelCounts.values())
+    .sort((a, b) => b.count - a.count)
+
+  return {
+    overview,
+    byLocation,
+    byBrandModel
+  }
+}
+
+/**
+ * 使用设备数据生成路由器统计（适用于本地/降级模式）
+ */
+async function buildRouterStatsFromDevices(): Promise<{
+  overview: AssetStats
+  byLocation: LocationStats[]
+}> {
+  const devices = await getDevices()
+  const routerDevices = devices.filter(device => isRouterDevice(device))
+
+  const overview: AssetStats = {
+    total: routerDevices.length,
+    available: 0,
+    inUse: 0,
+    maintenance: 0,
+    borrowed: 0
+  }
+
+  const locationCounts = new Map<string, number>()
+
+  routerDevices.forEach(device => {
+    switch (device.status) {
+      case '运行中':
+      case '使用中':
+        overview.inUse++
+        break
+      case '维护':
+      case '维修中':
+        overview.maintenance++
+        break
+      case '离线':
+      case '可用':
+        overview.available++
+        break
+      default:
+        overview[device.status] = (overview[device.status] || 0) + 1
+    }
+
+    const locationKey = device.location || '未指定位置'
+    locationCounts.set(locationKey, (locationCounts.get(locationKey) ?? 0) + 1)
+  })
+
+  const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
+    locationId: locationName,
+    locationName,
+    count
+  }))
+
+  return {
+    overview,
+    byLocation
+  }
+}
+
+/**
+ * 从 Supabase 获取路由器统计（用于无本地数据时）
+ */
+async function fetchRouterStatsFromSupabase(): Promise<{
+  overview: AssetStats
+  byLocation: LocationStats[]
+}> {
+  const overview: AssetStats = {
+    total: 0,
+    available: 0,
+    inUse: 0,
+    maintenance: 0,
+    borrowed: 0
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('assets')
+      .select(`
+        status,
+        location_id,
+        locations!inner(name)
+      `)
+      .eq('asset_type', '路由器')
+
+    if (error) throw error
+
+    const locationCounts = new Map<string, number>()
+
+    data?.forEach(item => {
+      overview.total++
+      switch (item.status) {
+        case '运行中':
+        case '使用中':
+          overview.inUse++
+          break
+        case '维护':
+        case '维修中':
+          overview.maintenance++
+          break
+        case '离线':
+        case '可用':
+          overview.available++
+          break
+        case '借出':
+          overview.borrowed++
+          break
+        default:
+          overview[item.status] = (overview[item.status] || 0) + 1
+      }
+
+      const locationName = item.locations?.name ?? '未指定位置'
+      locationCounts.set(locationName, (locationCounts.get(locationName) ?? 0) + 1)
+    })
+
+    const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
+      locationId: locationName,
+      locationName,
+      count
+    }))
+
+    return {
+      overview,
+      byLocation
+    }
+  } catch (error) {
+    console.error('获取路由器统计错误:', error)
+    return {
+      overview,
+      byLocation: []
+    }
+  }
+}
+
+/**
+ * 判断设备是否为路由器
+ */
+function isRouterDevice(device: Device): boolean {
+  const type = device.deviceType?.trim()
+  if (type && type === '路由器') {
+    return true
+  }
+
+  const keywords = ['router', '路由', 'wifi', 'wi-fi']
+  const target = `${device.name ?? ''} ${device.model ?? ''} ${device.printer?.model ?? ''}`.toLowerCase()
+  return keywords.some(keyword => target.includes(keyword))
 }
