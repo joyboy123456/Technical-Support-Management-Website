@@ -33,6 +33,10 @@ export default defineConfig({
         reuseExistingServer: true,
         stdout: 'pipe',
         stderr: 'pipe',
-        timeout: 120 * 1000
+        timeout: 120 * 1000,
+        env: {
+          VITE_DISABLE_SUPABASE: 'true',
+          ...process.env
+        }
       }
 })

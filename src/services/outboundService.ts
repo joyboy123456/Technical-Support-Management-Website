@@ -331,6 +331,29 @@ export async function returnOutboundItems(
 }
 
 /**
+ * 删除出库记录
+ */
+export async function deleteOutboundRecord(recordId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('outbound_records')
+        .delete()
+        .eq('id', recordId);
+
+      if (error) throw error;
+    } else {
+      localOutboundRecords = localOutboundRecords.filter(record => record.id !== recordId);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('删除出库记录失败:', error);
+    return { success: false, error: error.message || '删除出库记录失败' };
+  }
+}
+
+/**
  * 检查库存是否充足
  */
 async function checkStock(items: OutboundItem): Promise<{ sufficient: boolean; message?: string }> {

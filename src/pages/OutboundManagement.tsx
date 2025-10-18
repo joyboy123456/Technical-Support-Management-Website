@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -23,21 +23,35 @@ import {
   History,
   AlertCircle,
   PackagePlus,
+  Trash2,
 } from "lucide-react";
 import {
   getInventory,
   PrinterModel,
   getPrinterDisplayName,
   OutboundItem,
+  OutboundRecord,
 } from "../data/inventory";
 import { getDevices as fetchDevices } from "../data/devices";
 import {
   createOutboundRecord,
   getOutboundRecords,
   returnOutboundItems,
+  deleteOutboundRecord,
 } from "../services/outboundService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 
 export function OutboundManagement() {
+  const queryClient = useQueryClient();
   const [deviceId, setDeviceId] = useState("");
   const [destination, setDestination] = useState("");
   const [operator, setOperator] = useState("");
@@ -54,6 +68,17 @@ export function OutboundManagement() {
   const [returnedItems, setReturnedItems] = useState<OutboundItem>({});
   const [equipmentDamage, setEquipmentDamage] = useState("");
   const [returnNotes, setReturnNotes] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<OutboundRecord | null>(
+    null,
+  );
+
+  const handleDeleteDialogChange = (open: boolean) => {
+    setDeleteDialogOpen(open);
+    if (!open) {
+      setRecordToDelete(null);
+    }
+  };
 
   const { data: inventory } = useQuery({
     queryKey: ["inventory"],
@@ -181,6 +206,27 @@ export function OutboundManagement() {
       ...prev,
       [key]: typeof value === "string" ? parseInt(value) || 0 : value,
     }));
+  };
+
+  const openDeleteDialog = (record: OutboundRecord) => {
+    setRecordToDelete(record);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteRecord = async (record: OutboundRecord) => {
+    const result = await deleteOutboundRecord(record.id);
+    if (result.success) {
+      toast.success("出库记录已删除");
+      setDeleteDialogOpen(false);
+      setRecordToDelete(null);
+      queryClient.setQueryData<OutboundRecord[] | undefined>(
+        ["outboundRecords"],
+        (old) => old?.filter((item) => item.id !== record.id),
+      );
+      await refetchRecords();
+    } else {
+      toast.error(result.error || "删除失败，请稍后重试");
+    }
   };
 
   if (!inventory) {
@@ -551,6 +597,7 @@ export function OutboundManagement() {
           </CardContent>
         </Card>
       ) : showHistory ? (
+        <>
         <Card>
           <CardHeader>
             <CardTitle>出库历史记录</CardTitle>
@@ -578,21 +625,32 @@ export function OutboundManagement() {
                           目的地: {record.destination}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="flex flex-col items-end gap-2">
                         <p className="text-xs text-muted-foreground">
                           {new Date(record.date).toLocaleString("zh-CN")}
                         </p>
-                        {record.status === "outbound" && (
+                        <div className="flex items-center gap-2">
+                          {record.status === "outbound" && (
+                            <Button
+                              data-testid="outbound-return-button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => startReturn(record)}
+                            >
+                              归还
+                            </Button>
+                          )}
                           <Button
-                            data-testid="outbound-return-button"
-                            size="sm"
-                            variant="outline"
-                            className="mt-2"
-                            onClick={() => startReturn(record)}
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            data-testid="outbound-delete-button"
+                            aria-label="删除出库记录"
+                            onClick={() => openDeleteDialog(record)}
                           >
-                            归还
+                            <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
-                        )}
+                        </div>
                       </div>
                     </div>
                     <div className="text-sm">
@@ -669,6 +727,30 @@ export function OutboundManagement() {
             </div>
           </CardContent>
         </Card>
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认删除出库记录</AlertDialogTitle>
+              <AlertDialogDescription>
+                {recordToDelete
+                  ? `删除后将无法恢复记录“${recordToDelete.deviceName} → ${recordToDelete.destination}”。库存数据不会自动回滚，请谨慎操作。`
+                  : "删除后将无法恢复该记录。"}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                data-testid="outbound-delete-confirm"
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => recordToDelete && handleDeleteRecord(recordToDelete)}
+              >
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        </>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>

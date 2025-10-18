@@ -1,24 +1,8 @@
-import { test, expect, type Page } from '@playwright/test'
-
-async function createDevice(page: Page, name: string) {
-  await page.goto('/')
-  await page.waitForLoadState('networkidle')
-  await page.getByTestId('toolbar-create-device').click()
-  await page.getByTestId('create-device-name').fill(name)
-  await page.getByTestId('create-device-location').fill('E2E出库仓')
-  await page.getByTestId('create-device-owner').fill('仓管员')
-  const submitButton = page.getByTestId('create-device-submit')
-  await submitButton.scrollIntoViewIfNeeded()
-  await submitButton.evaluate((btn: HTMLElement) => btn.click())
-  await expect(page.getByText('设备创建成功')).toBeVisible()
-  await page.waitForTimeout(500)
-}
+import { test, expect } from '@playwright/test'
 
 test.describe('出库与归还流程', () => {
   test('LOAN-001/RET-001 出库 + 归还全链路', async ({ page }) => {
-    const deviceName = `E2E出库设备-${Date.now()}`
-
-    await createDevice(page, deviceName)
+    const deviceName = '魔镜10号'
 
     await page.goto('/outbound')
     await page.waitForLoadState('networkidle')
@@ -52,12 +36,11 @@ test.describe('出库与归还流程', () => {
 
     // 查看出库历史并执行归还
     await page.getByRole('button', { name: '出库历史' }).click()
-    const recordCard = page
+    const recordLocator = page
       .getByTestId('outbound-record-card')
       .filter({ hasText: deviceName })
-      .first()
-    await expect(recordCard).toBeVisible()
-    await recordCard.getByTestId('outbound-return-button').first().click()
+    await expect(recordLocator.first()).toBeVisible()
+    await recordLocator.first().getByTestId('outbound-return-button').first().click()
 
     await page.getByTestId('return-operator').fill('王归还')
     await page.getByTestId('return-paper-qty').fill('20')
@@ -65,7 +48,13 @@ test.describe('出库与归还流程', () => {
     await expect(page.getByText('归还记录已创建')).toBeVisible()
 
     // 归还后状态更新
-    await expect(recordCard.getByText('已归还')).toBeVisible()
-    await expect(recordCard.getByText('归还操作员: 王归还')).toBeVisible()
+    await expect(recordLocator.getByText('已归还').first()).toBeVisible()
+    await expect(recordLocator.getByText('归还操作员: 王归还').first()).toBeVisible()
+
+    // 删除记录
+    await recordLocator.first().getByTestId('outbound-delete-button').click()
+    await page.getByTestId('outbound-delete-confirm').click()
+    await expect(page.getByText('出库记录已删除')).toBeVisible()
+    await expect(recordLocator).toHaveCount(0)
   })
 })
