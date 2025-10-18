@@ -227,3 +227,18 @@ export async function createDevice(device: Omit<Device, 'logs' | 'issues'>): Pro
     return null;
   }
 }
+
+export async function deleteDeviceData(deviceId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('devices')
+      .delete()
+      .eq('id', deviceId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting device:', error);
+    return false;
+  }
+}

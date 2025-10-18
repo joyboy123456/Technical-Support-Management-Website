@@ -291,7 +291,8 @@ import {
   fetchDevice, 
   updateDeviceData, 
   addMaintenanceLogData,
-  createDevice as createDeviceRecord
+  createDevice as createDeviceRecord,
+  deleteDeviceData
 } from '../services/deviceService';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -349,6 +350,22 @@ export const updateDevice = async (deviceId: string, updates: Partial<Device>): 
     ...updates
   };
 
+  return true;
+};
+
+// 删除设备
+export const deleteDevice = async (deviceId: string): Promise<boolean> => {
+  if (checkSupabaseConfig()) {
+    const success = await deleteDeviceData(deviceId);
+    if (!success) return false;
+  }
+
+  const index = devicesData.findIndex(device => device.id === deviceId);
+  if (index === -1) {
+    return false;
+  }
+
+  devicesData.splice(index, 1);
   return true;
 };
 

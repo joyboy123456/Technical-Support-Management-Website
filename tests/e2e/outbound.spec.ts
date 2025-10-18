@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('出库与归还流程', () => {
   test('LOAN-001/RET-001 出库 + 归还全链路', async ({ page }) => {
     const deviceName = '魔镜10号'
+    const outboundDestination = `自动化出库-${Date.now()}`
 
     await page.goto('/outbound')
     await page.waitForLoadState('networkidle')
@@ -13,7 +14,7 @@ test.describe('出库与归还流程', () => {
     await deviceOption.waitFor({ timeout: 15000 })
     await deviceOption.click()
 
-    await page.getByTestId('outbound-destination').fill('成都展会')
+    await page.getByTestId('outbound-destination').fill(outboundDestination)
     await page.getByTestId('outbound-operator').fill('李借出')
     await page.getByTestId('outbound-notes').fill('E2E 自动化出库测试')
 
@@ -39,6 +40,7 @@ test.describe('出库与归还流程', () => {
     const recordLocator = page
       .getByTestId('outbound-record-card')
       .filter({ hasText: deviceName })
+      .filter({ hasText: outboundDestination })
     await expect(recordLocator.first()).toBeVisible()
     await recordLocator.first().getByTestId('outbound-return-button').first().click()
 

@@ -336,12 +336,16 @@ export async function returnOutboundItems(
 export async function deleteOutboundRecord(recordId: string): Promise<{ success: boolean; error?: string }> {
   try {
     if (isSupabaseConfigured) {
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('outbound_records')
         .delete()
-        .eq('id', recordId);
+        .eq('id', recordId)
+        .select('id');
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('未能删除出库记录，可能是权限限制');
+      }
     } else {
       localOutboundRecords = localOutboundRecords.filter(record => record.id !== recordId);
     }

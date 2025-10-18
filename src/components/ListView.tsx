@@ -1,7 +1,7 @@
 import React from 'react';
 import { Device } from '../data/devices';
 import { StatusDot } from './StatusDot';
-import { ChevronUp, ChevronDown, Settings } from 'lucide-react';
+import { ChevronUp, ChevronDown, Settings, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Tooltip,
@@ -31,6 +31,8 @@ interface ListViewProps {
    * 排序变更回调
    */
   onSortChange?: (field: string) => void;
+  /** 删除设备回调 */
+  onDeleteDevice?: (device: Device) => void;
   /**
    * 自定义类名
    */
@@ -73,6 +75,7 @@ export function ListView({
   sortBy = 'name',
   sortDirection = 'asc',
   onSortChange,
+  onDeleteDevice,
   className = ''
 }: ListViewProps) {
   const [columns, setColumns] = React.useState<Column[]>([
@@ -210,6 +213,22 @@ export function ListView({
                   </div>
                 </th>
               ))}
+              {onDeleteDevice && (
+                <th
+                  style={{
+                    padding: 'var(--space-3) var(--space-4)',
+                    textAlign: 'right',
+                    fontSize: 'var(--font-size-xs)',
+                    fontWeight: 'var(--font-weight-semibold)',
+                    color: 'var(--text-2)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px'
+                  }}
+                >
+                  操作
+                </th>
+              )}
             </tr>
           </thead>
 
@@ -244,6 +263,28 @@ export function ListView({
                     {renderCell(device, col.key)}
                   </td>
                 ))}
+                {onDeleteDevice && (
+                  <td
+                    style={{
+                      padding: 'var(--space-3) var(--space-4)',
+                      textAlign: 'right'
+                    }}
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      data-testid={`device-row-delete-${device.id}`}
+                      aria-label={`删除设备 ${device.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteDevice(device);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
+                    </Button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -282,5 +323,3 @@ function renderCell(device: Device, key: ColumnKey): React.ReactNode {
       return null;
   }
 }
-
-

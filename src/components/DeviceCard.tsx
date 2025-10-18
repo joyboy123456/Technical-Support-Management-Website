@@ -1,7 +1,7 @@
 import React from 'react';
 import { Device } from '../data/devices';
 import { StatusDot, getRelativeTime } from './StatusDot';
-import { MoreHorizontal, Wrench } from 'lucide-react';
+import { MoreHorizontal, Wrench, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Tooltip,
@@ -23,6 +23,8 @@ interface DeviceCardProps {
    * 标记维护回调
    */
   onMarkMaintenance?: (deviceId: string) => void;
+  /** 删除设备回调 */
+  onDelete?: (device: Device) => void;
   /**
    * 自定义类名
    */
@@ -47,6 +49,7 @@ export function DeviceCard({
   device,
   onClick,
   onMarkMaintenance,
+  onDelete,
   className = ''
 }: DeviceCardProps) {
   const [isHovered, setIsHovered] = React.useState(false);
@@ -96,9 +99,32 @@ export function DeviceCard({
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
-        transition: 'all var(--transition-normal)'
+        transition: 'all var(--transition-normal)',
+        position: 'relative'
       }}
     >
+      {onDelete && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          data-testid="device-card-delete"
+          aria-label={`删除设备 ${device.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(device);
+          }}
+          style={{
+            position: 'absolute',
+            top: 'var(--space-3)',
+            right: 'var(--space-3)',
+            opacity: isHovered ? 1 : 0,
+            transition: 'opacity var(--transition-fast)'
+          }}
+        >
+          <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
+        </Button>
+      )}
       {/* 头部 */}
       <div
         style={{
@@ -276,5 +302,4 @@ export function DeviceCard({
     </div>
   );
 }
-
 

@@ -44,5 +44,16 @@ test.describe('设备管理主页', () => {
     // 返回列表
     await page.getByRole('button', { name: '返回' }).click()
     await expect(page).toHaveURL('/')
+
+    const searchAfter = page.getByPlaceholder('搜索设备名称、序列号、位置...')
+    await searchAfter.fill(deviceName)
+    const createdCard = page.getByRole('article', { name: new RegExp(`设备 ${deviceName}`) })
+    await expect(createdCard).toBeVisible()
+
+    await createdCard.hover()
+    await createdCard.getByTestId('device-card-delete').click()
+    await page.getByTestId('device-delete-confirm').click()
+    await expect(page.getByText('设备已删除')).toBeVisible()
+    await expect(page.getByRole('article', { name: new RegExp(`设备 ${deviceName}`) })).toHaveCount(0)
   })
 })

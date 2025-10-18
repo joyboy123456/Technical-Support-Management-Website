@@ -1,5 +1,5 @@
 import React from 'react';
-import { getDevices, Device, createDevice } from '../data/devices';
+import { getDevices, Device, createDevice, deleteDevice } from '../data/devices';
 import { KpiCard, KpiCardGroup } from './KpiCard';
 import { DeviceCard } from './DeviceCard';
 import { TopToolbar } from './TopToolbar';
@@ -8,6 +8,16 @@ import { ListView } from './ListView';
 import { DeviceCardSkeleton } from './DeviceCardSkeleton';
 import { toast } from 'sonner';
 import { CreateDeviceDialog } from './CreateDeviceDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from './ui/alert-dialog';
 
 interface HomePageProps {
   onDeviceClick: (deviceId: string) => void;
@@ -29,6 +39,8 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
   const [refreshing, setRefreshing] = React.useState(false);
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [devicePendingDelete, setDevicePendingDelete] = React.useState<Device | null>(null);
 
   // 筛选状态
   const [filters, setFilters] = React.useState<FilterState>({
@@ -164,6 +176,32 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
       throw new Error('创建设备失败');
     }
   }, [refreshDevices]);
+
+  const handleDeleteDeviceRequest = React.useCallback((device: Device) => {
+    setDevicePendingDelete(device);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleDeleteDialogChange = React.useCallback((open: boolean) => {
+    setDeleteDialogOpen(open);
+    if (!open) {
+      setDevicePendingDelete(null);
+    }
+  }, []);
+
+  const handleConfirmDeleteDevice = React.useCallback(async () => {
+    if (!devicePendingDelete) return;
+
+    const success = await deleteDevice(devicePendingDelete.id);
+    if (success) {
+      toast.success('设备已删除');
+      setDeleteDialogOpen(false);
+      setDevicePendingDelete(null);
+      await refreshDevices();
+    } else {
+      toast.error('删除失败，请稍后重试');
+    }
+  }, [devicePendingDelete, refreshDevices]);
 
   // 筛选变更
   const handleFiltersChange = (updates: Partial<FilterState>) => {
@@ -307,6 +345,7 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
                 device={device}
                 onClick={onDeviceClick}
                 onMarkMaintenance={(id) => toast.info(`标记设备 ${id} 为维护中`)}
+                onDelete={handleDeleteDeviceRequest}
               />
             </div>
           ))}
@@ -319,6 +358,7 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
           sortBy={filters.sortBy}
           sortDirection={sortDirection}
           onSortChange={handleListSort}
+          onDeleteDevice={handleDeleteDeviceRequest}
         />
       )}
       <CreateDeviceDialog
@@ -326,6 +366,28 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
         onClose={handleCreateDialogClose}
         onCreate={handleCreateDeviceSubmit}
       />
+      <AlertDialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除设备</AlertDialogTitle>
+            <AlertDialogDescription>
+              {devicePendingDelete
+                ? `确定要删除设备“${devicePendingDelete.name}”吗？相关的维护与故障记录将一并移除。`
+                : '确定要删除该设备吗？'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="device-delete-confirm"
+              onClick={handleConfirmDeleteDevice}
+            >
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -2,10 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
 // 检查是否配置了真实的 Supabase 凭据
-const disableSupabase = import.meta.env.VITE_DISABLE_SUPABASE === 'true';
-
 const hasValidConfig = 
-  !disableSupabase &&
   import.meta.env.VITE_SUPABASE_URL && 
   import.meta.env.VITE_SUPABASE_ANON_KEY &&
   import.meta.env.VITE_SUPABASE_URL !== 'your_supabase_project_url';
