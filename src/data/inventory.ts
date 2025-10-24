@@ -5,6 +5,17 @@ import { fetchInventory, updateInventoryData } from '../services/inventoryServic
 // 打印机型号类型（支持任意字符串，兼容数据库中的动态型号）
 export type PrinterModel = string;
 
+// 打印机设备实例
+export interface PrinterInstance {
+  id: string;              // 设备编号
+  printerModel: PrinterModel; // 所属型号
+  serialNumber?: string;   // 序列号（可选）
+  status: 'in-house' | 'deployed' | 'idle';  // 在库/外放/闲置
+  location: string;        // 当前位置或去向
+  deployedDate?: string;   // 外放日期
+  notes?: string;          // 备注
+}
+
 // EPSON 打印机墨水库存
 export interface EPSONInkStock {
   C: number;  // 青色墨水（瓶数）
@@ -78,6 +89,47 @@ const defaultInventory: Inventory = {
 
 // 全局库存状态（实际项目中应该从数据库读取）
 let inventoryData: Inventory = { ...defaultInventory };
+
+// 全局缓存打印机实例
+let printerInstancesCache: PrinterInstance[] = [];
+
+/**
+ * 获取指定型号的设备实例列表（从数据库）
+ */
+export const getPrinterInstances = async (printerModel: PrinterModel): Promise<PrinterInstance[]> => {
+  if (!isSupabaseConfigured) {
+    // 降级：返回空数组（或者从本地存储读取）
+    console.warn('Supabase 未配置，无法获取设备实例');
+    return [];
+  }
+
+  try {
+    const { fetchPrinterInstancesByModel } = await import('../services/printerInstanceService');
+    return await fetchPrinterInstancesByModel(printerModel);
+  } catch (error) {
+    console.error('获取打印机实例失败:', error);
+    return [];
+  }
+};
+
+/**
+ * 获取所有设备实例（用于缓存和统计）
+ */
+export const getAllPrinterInstances = async (): Promise<PrinterInstance[]> => {
+  if (!isSupabaseConfigured) {
+    return [];
+  }
+
+  try {
+    const { fetchPrinterInstances } = await import('../services/printerInstanceService');
+    const instances = await fetchPrinterInstances();
+    printerInstancesCache = instances;
+    return instances;
+  } catch (error) {
+    console.error('获取所有打印机实例失败:', error);
+    return [];
+  }
+};
 
 /**
  * 获取调试间库存信息
@@ -192,6 +244,110 @@ export const getPrinterDisplayName = (model: PrinterModel): string => {
   };
   
   return displayNames[model] || model;
+};
+
+/**
+ * 解析打印机型号信息（品牌、型号、变体）
+ */
+export interface PrinterInfo {
+  brand: string;       // 品牌：DNP、EPSON、西铁城、HITI
+  model: string;       // 型号：DS-RX1HS、L8058、L18058、CX-02、P525L
+  variant: string;     // 变体：自购、锦联、微印创、A4、A3 等
+  rawModel: string;    // 原始型号字符串
+  displayName: string; // 显示名称
+}
+
+export const parsePrinterModel = (model: PrinterModel): PrinterInfo => {
+  const displayName = getPrinterDisplayName(model);
+  
+  // 从显示名称中提取品牌、型号、变体
+  // 格式：品牌 型号 (变体)
+  const match = displayName.match(/^([^\s]+)\s+([^\(]+?)(?:\s*\(([^\)]+)\))?$/);
+  
+  if (match) {
+    const [, brand, modelPart, variant] = match;
+    return {
+      brand: brand.trim(),
+      model: modelPart.trim(),
+      variant: variant?.trim() || '',
+      rawModel: model,
+      displayName
+    };
+  }
+  
+  // 降级处理：如果解析失败，从原始型号推断
+  const parts = model.split('-');
+  return {
+    brand: parts[0] || model,
+    model: model,
+    variant: parts.slice(1).join('-'),
+    rawModel: model,
+    displayName
+  };
+};
+
+/**
+ * 三级排序：品牌 → 型号 → 变体
+ */
+export const sortPrinterModels = (models: PrinterModel[]): PrinterModel[] => {
+  return models.sort((a, b) => {
+    const infoA = parsePrinterModel(a);
+    const infoB = parsePrinterModel(b);
+    
+    // 第一级：按品牌排序
+    if (infoA.brand !== infoB.brand) {
+      // 定义品牌优先级
+      const brandOrder = ['DNP', 'EPSON', '西铁城', 'HITI'];
+      const indexA = brandOrder.indexOf(infoA.brand);
+      const indexB = brandOrder.indexOf(infoB.brand);
+      
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return infoA.brand.localeCompare(infoB.brand, 'zh-CN');
+    }
+    
+    // 第二级：按型号排序
+    if (infoA.model !== infoB.model) {
+      // EPSON 型号特殊处理：L8058 → L18058
+      if (infoA.brand === 'EPSON') {
+        const modelOrder = ['L8058', 'L18058'];
+        const indexA = modelOrder.indexOf(infoA.model);
+        const indexB = modelOrder.indexOf(infoB.model);
+        
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      }
+      
+      return infoA.model.localeCompare(infoB.model, 'zh-CN');
+    }
+    
+    // 第三级：按变体排序
+    if (infoA.variant !== infoB.variant) {
+      // DNP 变体排序：自购 → 锦联 → 微印创
+      if (infoA.brand === 'DNP') {
+        const variantOrder = ['自购', '锦联', '微印创'];
+        const indexA = variantOrder.indexOf(infoA.variant);
+        const indexB = variantOrder.indexOf(infoB.variant);
+        
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+      }
+      
+      // EPSON 变体排序：L8058 (A4) → L18058 (A3)
+      if (infoA.brand === 'EPSON') {
+        const variantOrder = ['A4', 'A3'];
+        const indexA = variantOrder.indexOf(infoA.variant);
+        const indexB = variantOrder.indexOf(infoB.variant);
+        
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      }
+      
+      return infoA.variant.localeCompare(infoB.variant, 'zh-CN');
+    }
+    
+    return 0;
+  });
 };
 
 /**

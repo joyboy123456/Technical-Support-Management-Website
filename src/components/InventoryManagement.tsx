@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, Save, AlertCircle, Plus, Minus } from 'lucide-react';
+import { Package, Save, AlertCircle, Plus, Minus, ChevronDown, ChevronUp, Printer } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -11,7 +11,11 @@ import {
   Inventory, 
   PrinterModel,
   getPrinterDisplayName,
-  checkStockLevel 
+  checkStockLevel,
+  sortPrinterModels,
+  parsePrinterModel,
+  getPrinterInstances,
+  PrinterInstance
 } from '../data/inventory';
 
 export function InventoryManagement() {
@@ -19,6 +23,7 @@ export function InventoryManagement() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [editedInventory, setEditedInventory] = React.useState<Inventory | null>(null);
+  const [expandedPrinters, setExpandedPrinters] = React.useState<Set<string>>(new Set());
 
   // 加载库存数据
   const loadInventory = React.useCallback(async () => {
@@ -136,6 +141,31 @@ export function InventoryManagement() {
     return JSON.stringify(inventory) !== JSON.stringify(editedInventory);
   }, [inventory, editedInventory]);
 
+  // 切换设备实例展开/折叠
+  const togglePrinterExpand = (printerModel: string) => {
+    setExpandedPrinters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(printerModel)) {
+        newSet.delete(printerModel);
+      } else {
+        newSet.add(printerModel);
+      }
+      return newSet;
+    });
+  };
+
+  // 获取状态标签样式和文本
+  const getStatusBadge = (status: PrinterInstance['status']) => {
+    switch (status) {
+      case 'in-house':
+        return { icon: '✅', color: 'bg-green-100 text-green-700', label: '在库' };
+      case 'deployed':
+        return { icon: '🔴', color: 'bg-red-100 text-red-700', label: '外放' };
+      case 'idle':
+        return { icon: '⚪', color: 'bg-gray-100 text-gray-700', label: '闲置' };
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
@@ -226,54 +256,157 @@ export function InventoryManagement() {
       <div className="space-y-6">
         <h2 className="text-xl font-semibold">相纸库存</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(Object.entries(editedInventory.paperStock) as [PrinterModel, any][]).map(([printerModel, stock]) => (
-            <Card key={printerModel} className="anthropic-card-shadow">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  {getPrinterDisplayName(printerModel)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {Object.entries(stock).map(([paperType, quantity]) => (
-                  <div key={paperType} className="space-y-2">
-                    <label className="text-sm font-medium">{paperType}</label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => adjustPaper(printerModel, paperType, -10)}
-                      >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      
-                      <Input
-                        data-testid={`inventory-paper-${printerModel.replace(/\s+/g, '-').replace(/\//g, '-')}-${paperType.replace(/\s+/g, '-').replace(/\//g, '-')}`}
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => handlePaperChange(printerModel, paperType, e.target.value)}
-                        className={`text-center ${quantity < 100 ? 'border-destructive' : ''}`}
-                        min="0"
-                      />
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => adjustPaper(printerModel, paperType, 10)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                      
-                      <span className="text-xs text-muted-foreground min-w-[30px]">张</span>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-8">
+          {(() => {
+            // 获取排序后的打印机型号列表
+            const sortedModels = sortPrinterModels(Object.keys(editedInventory.paperStock));
+            
+            // 按品牌和型号分组
+            const groups: { 
+              brand: string; 
+              model: string; 
+              printers: { model: PrinterModel; info: any; stock: any }[] 
+            }[] = [];
+            
+            sortedModels.forEach(printerModel => {
+              const info = parsePrinterModel(printerModel);
+              const stock = editedInventory.paperStock[printerModel];
+              
+              // 查找或创建组
+              let group = groups.find(g => g.brand === info.brand && g.model === info.model);
+              if (!group) {
+                group = { brand: info.brand, model: info.model, printers: [] };
+                groups.push(group);
+              }
+              
+              group.printers.push({ model: printerModel, info, stock });
+            });
+            
+            // 渲染分组的打印机卡片
+            return groups.map((group, groupIndex) => (
+              <div key={`${group.brand}-${group.model}`} className={groupIndex > 0 ? 'pt-4 border-t' : ''}>
+                {/* 组标题 */}
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium text-muted-foreground">
+                    {group.brand} · {group.model} ({group.printers.length})
+                  </h3>
+                </div>
+                
+                {/* 打印机卡片 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {group.printers.map(({ model: printerModel, info, stock }) => (
+                    <Card key={printerModel} className="anthropic-card-shadow">
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Package className="w-4 h-4" />
+                          {info.displayName}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {Object.entries(stock).map(([paperType, quantity]) => (
+                          <div key={paperType} className="space-y-2">
+                            <label className="text-sm font-medium">{paperType}</label>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => adjustPaper(printerModel, paperType, -10)}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                              
+                              <Input
+                                data-testid={`inventory-paper-${printerModel.replace(/\s+/g, '-').replace(/\//g, '-')}-${paperType.replace(/\s+/g, '-').replace(/\//g, '-')}`}
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => handlePaperChange(printerModel, paperType, e.target.value)}
+                                className={`text-center ${quantity < 100 ? 'border-destructive' : ''}`}
+                                min="0"
+                              />
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => adjustPaper(printerModel, paperType, 10)}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                              
+                              <span className="text-xs text-muted-foreground min-w-[30px]">张</span>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* 设备实例展示区域 */}
+                        {(() => {
+                          const instances = getPrinterInstances(printerModel);
+                          if (instances.length === 0) return null;
+                          
+                          const isExpanded = expandedPrinters.has(printerModel);
+                          const inHouseCount = instances.filter(i => i.status === 'in-house').length;
+                          const deployedCount = instances.filter(i => i.status === 'deployed').length;
+                          const idleCount = instances.filter(i => i.status === 'idle').length;
+                          
+                          return (
+                            <div className="mt-4 pt-4 border-t">
+                              <button
+                                onClick={() => togglePrinterExpand(printerModel)}
+                                className="w-full flex items-center justify-between text-sm font-medium hover:text-primary transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Printer className="w-4 h-4" />
+                                  <span>设备实例 ({instances.length}台)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-muted-foreground">
+                                    在库{inHouseCount} · 外放{deployedCount} · 闲置{idleCount}
+                                  </span>
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
+                                </div>
+                              </button>
+                              
+                              {isExpanded && (
+                                <div className="mt-3 space-y-2">
+                                  {instances.map((instance) => {
+                                    const statusInfo = getStatusBadge(instance.status);
+                                    return (
+                                      <div
+                                        key={instance.id}
+                                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-xs"
+                                      >
+                                        <div className="flex items-center gap-2 flex-1">
+                                          <span className={`px-2 py-1 rounded text-xs ${statusInfo.color}`}>
+                                            {statusInfo.icon} {statusInfo.label}
+                                          </span>
+                                          <span className="font-medium">{instance.id}</span>
+                                        </div>
+                                        <div className="text-right text-muted-foreground">
+                                          <div>{instance.location}</div>
+                                          {instance.deployedDate && (
+                                            <div className="text-[10px]">{instance.deployedDate}</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
         </div>
       </div>
 
