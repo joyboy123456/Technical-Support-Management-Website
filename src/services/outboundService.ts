@@ -16,6 +16,7 @@ interface OutboundRecordRow {
   return_info?: any;
   original_location?: string;
   original_owner?: string;
+  device_instance_id?: string;
 }
 
 // 本地内存存储（用于演示模式）
@@ -122,12 +123,29 @@ export async function createOutboundRecord(
           notes: record.notes,
           status: 'outbound',
           original_location: originalLocation,
-          original_owner: originalOwner
+          original_owner: originalOwner,
+          device_instance_id: record.deviceInstanceId || null
         })
         .select()
         .single();
 
       if (outboundError) throw outboundError;
+
+      // 如果关联了打印机设备实例，自动更新其状态
+      if (record.deviceInstanceId) {
+        try {
+          const { updatePrinterInstance } = await import('./printerInstanceService');
+          await updatePrinterInstance(record.deviceInstanceId, {
+            status: 'deployed',
+            location: record.destination,
+            deployedDate: new Date().toISOString().split('T')[0]
+          });
+          console.log(`✅ 已自动更新打印机实例 ${record.deviceInstanceId} 状态为外放`);
+        } catch (error) {
+          console.error('更新打印机实例状态失败:', error);
+          // 不影响出库流程，继续执行
+        }
+      }
 
       // 创建审计日志
       await createAuditLog({
@@ -317,6 +335,22 @@ export async function returnOutboundItems(
         if (record.originalOwner) {
           console.log('✅ 设备负责人已恢复为:', record.originalOwner);
         }
+      }
+    }
+
+    // 3.5. 如果关联了打印机设备实例，自动恢复其状态
+    if (record.deviceInstanceId) {
+      try {
+        const { updatePrinterInstance } = await import('./printerInstanceService');
+        await updatePrinterInstance(record.deviceInstanceId, {
+          status: 'in-house',
+          location: record.originalLocation || '展厅/调试间',
+          deployedDate: null
+        });
+        console.log(`✅ 已自动恢复打印机实例 ${record.deviceInstanceId} 状态为在库`);
+      } catch (error) {
+        console.error('恢复打印机实例状态失败:', error);
+        // 不影响归还流程，继续执行
       }
     }
 
@@ -528,6 +562,7 @@ function mapRowToOutboundRecord(row: OutboundRecordRow): OutboundRecord {
     status: row.status,
     returnInfo: row.return_info,
     originalLocation: row.original_location,
-    originalOwner: row.original_owner
+    originalOwner: row.original_owner,
+    deviceInstanceId: row.device_instance_id
   };
 }

@@ -442,6 +442,7 @@ export interface OutboundRecord {
   returnInfo?: ReturnInfo;
   originalLocation?: string; // 记录原始位置，用于归还时恢复
   originalOwner?: string; // 记录原负责人，用于归还时恢复
+  deviceInstanceId?: string; // 关联的打印机设备实例ID（可选）
 }
 
 let outboundRecords: OutboundRecord[] = [];
