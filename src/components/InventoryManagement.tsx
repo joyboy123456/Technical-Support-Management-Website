@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, Save, AlertCircle, Plus, Minus, ChevronDown, ChevronUp, Printer } from 'lucide-react';
+import { Package, Save, AlertCircle, Plus, Minus, ChevronDown, ChevronUp, Printer, Edit2, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -14,7 +14,7 @@ import {
   checkStockLevel,
   sortPrinterModels,
   parsePrinterModel,
-  getPrinterInstances,
+  getAllPrinterInstances,
   PrinterInstance
 } from '../data/inventory';
 
@@ -24,14 +24,31 @@ export function InventoryManagement() {
   const [saving, setSaving] = React.useState(false);
   const [editedInventory, setEditedInventory] = React.useState<Inventory | null>(null);
   const [expandedPrinters, setExpandedPrinters] = React.useState<Set<string>>(new Set());
+  const [printerInstancesMap, setPrinterInstancesMap] = React.useState<Map<string, PrinterInstance[]>>(new Map());
+  const [editingInstance, setEditingInstance] = React.useState<PrinterInstance | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [instanceToDelete, setInstanceToDelete] = React.useState<PrinterInstance | null>(null);
 
-  // 加载库存数据
+  // 加载库存数据和设备实例
   const loadInventory = React.useCallback(async () => {
     try {
       setLoading(true);
       const data = await getInventory();
       setInventory(data);
       setEditedInventory(JSON.parse(JSON.stringify(data))); // 深拷贝
+      
+      // 加载所有打印机实例
+      const allInstances = await getAllPrinterInstances();
+      const instancesMap = new Map<string, PrinterInstance[]>();
+      
+      // 按型号分组
+      Object.keys(data.paperStock).forEach(printerModel => {
+        const instances = allInstances.filter(i => i.printerModel === printerModel);
+        instancesMap.set(printerModel, instances);
+      });
+      
+      setPrinterInstancesMap(instancesMap);
     } catch (error) {
       console.error('Failed to fetch inventory:', error);
       toast.error('加载库存数据失败');
@@ -341,7 +358,7 @@ export function InventoryManagement() {
                         
                         {/* 设备实例展示区域 */}
                         {(() => {
-                          const instances = getPrinterInstances(printerModel);
+                          const instances = printerInstancesMap.get(printerModel) || [];
                           if (instances.length === 0) return null;
                           
                           const isExpanded = expandedPrinters.has(printerModel);
