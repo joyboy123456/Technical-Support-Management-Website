@@ -31,6 +31,8 @@ import {
   getPrinterDisplayName,
   OutboundItem,
   OutboundRecord,
+  getAllPrinterInstances,
+  PrinterInstance,
 } from "../data/inventory";
 import { getDevices as fetchDevices } from "../data/devices";
 import {
@@ -72,6 +74,8 @@ export function OutboundManagement() {
   const [recordToDelete, setRecordToDelete] = useState<OutboundRecord | null>(
     null,
   );
+  const [selectedDeviceInstance, setSelectedDeviceInstance] = useState<string>("");
+  const [printerInstances, setPrinterInstances] = useState<any[]>([]);
 
   const handleDeleteDialogChange = (open: boolean) => {
     setDeleteDialogOpen(open);
@@ -95,6 +99,19 @@ export function OutboundManagement() {
     queryFn: getOutboundRecords,
   });
 
+  // 加载打印机实例
+  React.useEffect(() => {
+    const loadPrinterInstances = async () => {
+      try {
+        const instances = await getAllPrinterInstances();
+        setPrinterInstances(instances);
+      } catch (error) {
+        console.error('加载打印机实例失败:', error);
+      }
+    };
+    loadPrinterInstances();
+  }, []);
+
   const handleItemChange = (
     key: keyof OutboundItem,
     value: string | number,
@@ -108,6 +125,7 @@ export function OutboundManagement() {
   const handlePrinterModelChange = (model: string) => {
     setPrinterModel(model as PrinterModel);
     setPaperType("");
+    setSelectedDeviceInstance(""); // 清空选中的设备实例
     setItems((prev) => ({
       ...prev,
       printerModel: model as PrinterModel,
@@ -120,6 +138,16 @@ export function OutboundManagement() {
     if (!inventory) return [];
     const stock = inventory.paperStock[model];
     return Object.keys(stock);
+  };
+
+  // 获取当前选中打印机型号下的在库设备
+  const getAvailableDevices = (): PrinterInstance[] => {
+    if (!printerModel) return [];
+    return printerInstances.filter(
+      (instance) => 
+        instance.printerModel === printerModel && 
+        instance.status === 'in-house'
+    );
   };
 
   const handleSubmit = async () => {
@@ -141,6 +169,13 @@ export function OutboundManagement() {
       outboundItems.paperQuantity = items.paperQuantity;
     }
 
+    // 如果是DNP型号且未选择设备，显示警告（但允许继续）
+    if (printerModel && printerModel.startsWith('DNP-') && !selectedDeviceInstance) {
+      toast.warning('提醒：DNP 打印机建议选择具体设备，确保相纸与打印机匹配', {
+        duration: 3000
+      });
+    }
+
     const result = await createOutboundRecord({
       deviceId,
       deviceName: selectedDevice.name,
@@ -148,10 +183,14 @@ export function OutboundManagement() {
       operator,
       items: outboundItems,
       notes,
+      deviceInstanceId: selectedDeviceInstance || undefined,
     });
 
     if (result.success) {
-      toast.success("出库记录已创建");
+      const syncMsg = selectedDeviceInstance 
+        ? `，已自动更新 ${selectedDeviceInstance} 状态为外放` 
+        : '';
+      toast.success(`出库记录已创建${syncMsg}`);
       setDeviceId("");
       setDestination("");
       setOperator("");
@@ -159,6 +198,7 @@ export function OutboundManagement() {
       setPaperType("");
       setItems({});
       setNotes("");
+      setSelectedDeviceInstance("");
       refetchRecords();
     } else {
       toast.error(result.error || "库存不足或创建失败");
@@ -850,6 +890,39 @@ export function OutboundManagement() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* 设备选择（可选） */}
+              {printerModel && (
+                <div>
+                  <Label>携带打印机设备（可选）</Label>
+                  {printerModel.startsWith('DNP-') && (
+                    <p className="text-xs text-amber-600 mb-2">
+                      💡 提示：DNP 打印机建议选择对应设备，确保相纸与打印机匹配
+                    </p>
+                  )}
+                  <Select
+                    value={selectedDeviceInstance}
+                    onValueChange={setSelectedDeviceInstance}
+                  >
+                    <SelectTrigger data-testid="outbound-device-instance-select">
+                      <SelectValue placeholder="选择具体设备或仅出库相纸" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">仅出库相纸，不带打印机实体</SelectItem>
+                      {getAvailableDevices().map((instance) => (
+                        <SelectItem key={instance.id} value={instance.id}>
+                          {instance.id} ({instance.location} · 在库)
+                        </SelectItem>
+                      ))}
+                      {getAvailableDevices().length === 0 && (
+                        <SelectItem value="__no_devices__" disabled>
+                          暂无在库设备
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {printerModel && (
                 <>
