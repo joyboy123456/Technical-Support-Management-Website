@@ -10,7 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Audit } from './pages/Audit';
 import { OutboundManagement } from './pages/OutboundManagement';
 import { Toaster } from './components/ui/sonner';
-import { SupabaseStatus } from './components/SupabaseStatus';
+import { SupabaseGate } from './components/SupabaseGate';
 
 // 创建 QueryClient 实例
 const queryClient = new QueryClient({
@@ -31,7 +31,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <Toaster />
-      <SupabaseStatus />
     </div>
   );
 }
@@ -72,25 +71,27 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <Layout>
-          <Routes>
-            {/* 主页面 */}
-            <Route path="/" element={<HomePageWrapper />} />
+        <SupabaseGate>
+          <Layout>
+            <Routes>
+              {/* 主页面 */}
+              <Route path="/" element={<HomePageWrapper />} />
 
-            {/* 新增功能页面 */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/audit" element={<Audit />} />
-            <Route path="/outbound" element={<OutboundManagement />} />
+              {/* 新增功能页面 */}
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/audit" element={<Audit />} />
+              <Route path="/outbound" element={<OutboundManagement />} />
 
-            {/* 现有功能页面（保持兼容） */}
-            <Route path="/inventory" element={<InventoryManagement />} />
-            <Route path="/device" element={<DeviceDetailPage />} />
-            <Route path="/knowledge" element={<KnowledgePageWrapper />} />
+              {/* 现有功能页面（保持兼容） */}
+              <Route path="/inventory" element={<InventoryManagement />} />
+              <Route path="/device" element={<DeviceDetailPage />} />
+              <Route path="/knowledge" element={<KnowledgePageWrapper />} />
 
-            {/* 重定向未知路由 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
+              {/* 重定向未知路由 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
+        </SupabaseGate>
       </Router>
     </QueryClientProvider>
   );
