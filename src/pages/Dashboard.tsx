@@ -43,13 +43,30 @@ export function Dashboard() {
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['dashboard', timeRange, locationFilter],
     queryFn: getDashboardSummary,
+    staleTime: 2 * 60 * 1000, // 2分钟内数据视为新鲜，不重新请求
+    cacheTime: 5 * 60 * 1000, // 缓存5分钟
     refetchInterval: 5 * 60 * 1000, // 每5分钟刷新
   })
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">统计看板</h1>
+          <p className="text-gray-600 mt-1">正在加载数据...</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
