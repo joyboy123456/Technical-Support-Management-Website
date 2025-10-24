@@ -106,8 +106,47 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
       const direction = sortDirection === 'asc' ? 1 : -1;
 
       switch (filters.sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name) * direction;
+        case 'name': {
+          // 规则：
+          // 1) 带数字的名称按数字从小到大排序（如：魔镜1号 → 魔镜10号）
+          // 2) 英文名按“添加时间”从新到旧或旧到新（根据排序方向）；
+          // 3) 其他名称使用自然排序（numeric: true）
+          const extractNumber = (s: string): number | null => {
+            const m = s.match(/(\d+)/);
+            return m ? parseInt(m[1], 10) : null;
+          };
+          const isEnglishName = (s: string): boolean => /[A-Za-z]/.test(s) && /^[\x00-\x7F]+$/.test(s);
+          const getCreatedTs = (d: any): number => {
+            if (d.createdAt) {
+              const t = new Date(d.createdAt).getTime();
+              if (!isNaN(t)) return t;
+            }
+            // 回退：从 id 中提取时间戳（如 id=dev-1699999999999）
+            if (typeof d.id === 'string') {
+              const m = d.id.match(/^dev-(\d+)$/);
+              if (m) return parseInt(m[1], 10);
+            }
+            return 0;
+          };
+
+          const numA = extractNumber(a.name);
+          const numB = extractNumber(b.name);
+          const engA = isEnglishName(a.name);
+          const engB = isEnglishName(b.name);
+
+          // 排序优先级：数字名(0) → 英文名(1) → 其他(2)
+          const rank = (n: number | null, eng: boolean) => (n !== null ? 0 : (eng ? 1 : 2));
+          const ra = rank(numA, engA);
+          const rb = rank(numB, engB);
+
+          if (ra !== rb) return (ra - rb) * direction;
+          if (ra === 0) return ((numA! - numB!) * direction); // 数字名：按数字排序
+          if (ra === 1) return ((getCreatedTs(a) - getCreatedTs(b)) * direction); // 英文名：按创建时间排序
+
+          // 其他名称：自然排序
+          const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+          return collator.compare(a.name, b.name) * direction;
+        }
         case 'status':
           return a.status.localeCompare(b.status) * direction;
         case 'location':

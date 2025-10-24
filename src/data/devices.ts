@@ -23,6 +23,7 @@ export interface Device {
     };
   };
   nextMaintenance: string;
+  createdAt?: string;
   logs: Array<{
     date: string;
     type: '维护' | '故障' | '耗材' | '其他';

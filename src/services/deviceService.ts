@@ -27,6 +27,7 @@ function mapRowToDevice(row: any, logs: any[] = [], issues: any[] = []): Device 
       },
     },
     nextMaintenance: row.next_maintenance,
+    createdAt: row.created_at,
     logs: logs.map(log => ({
       date: log.date,
       type: log.type,
