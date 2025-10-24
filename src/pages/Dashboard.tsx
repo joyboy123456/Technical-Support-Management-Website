@@ -92,17 +92,15 @@ export function Dashboard() {
 
   const brandModelData = printers.byBrandModel
     .reduce((acc, item) => {
-      const key = `${item.brand} ${item.model}`
-      const existing = acc.find(x => x.name === key)
+      const existing = acc.find(x => x.name === item.brand)
       if (existing) {
         existing.count += item.count
       } else {
-        acc.push({ name: key, count: item.count })
+        acc.push({ name: item.brand, count: item.count })
       }
       return acc
     }, [] as { name: string; count: number }[])
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
 
   return (
     <div className="p-6 space-y-6">
@@ -259,10 +257,10 @@ export function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* 打印机品牌型号分布 */}
+            {/* 打印机品牌分布 */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>打印机品牌型号分布</CardTitle>
+                <CardTitle>打印机品牌分布</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -306,11 +304,20 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {printers.byLocation.map(location => (
-                    <div key={location.locationId} className="flex justify-between items-center">
-                      <span>{location.locationName}</span>
-                      <Badge variant="outline">{location.count}</Badge>
+                    <div key={location.locationId} className="space-y-2 p-3 border rounded-lg">
+                      <div className="text-xs text-gray-500 mb-2">{location.locationName}</div>
+                      {location.models && location.models.length > 0 && (
+                        <div className="space-y-2">
+                          {location.models.map((modelInfo, idx) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span className="font-medium">{modelInfo.brand} {modelInfo.model}</span>
+                              <Badge variant="outline">{modelInfo.count} 台</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

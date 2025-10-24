@@ -18,6 +18,7 @@ export interface LocationStats {
   locationId: string
   locationName: string
   count: number
+  models?: { brand: string; model: string; count: number }[]
 }
 
 export interface BrandModelStats {
@@ -51,7 +52,20 @@ export async function getPrinterStats(): Promise<{
   byLocation: LocationStats[]
   byBrandModel: BrandModelStats[]
 }> {
-  // 统一通过设备数据计算统计，确保出库操作同步反映到看板
+  // 优先从 Supabase 获取真实数据
+  if (isSupabaseConfigured) {
+    try {
+      const supabaseStats = await fetchPrinterStatsFromSupabase()
+      // 无论有没有数据，都返回 Supabase 的结果（包括空数据）
+      console.log(`📊 从 Supabase 获取到 ${supabaseStats.overview.total} 台打印机数据`)
+      return supabaseStats
+    } catch (error) {
+      console.error('从 Supabase 获取打印机统计失败，使用本地数据:', error)
+    }
+  }
+  
+  // 降级使用本地设备数据（仅用于演示）
+  console.warn('⚠️ 使用本地模拟数据，请添加真实打印机到数据库')
   return buildPrinterStatsFromDevices()
 }
 
@@ -336,6 +350,7 @@ async function buildPrinterStatsFromDevices(): Promise<{
   }
 
   const locationCounts = new Map<string, number>()
+  const locationModels = new Map<string, Map<string, { brand: string; model: string; count: number }>>()
   const brandModelCounts = new Map<string, { brand: string; model: string; count: number }>()
 
   printerDevices.forEach(device => {
@@ -368,12 +383,25 @@ async function buildPrinterStatsFromDevices(): Promise<{
     } else {
       brandModelCounts.set(brandModelKey, { brand, model, count: 1 })
     }
+
+    // 记录每个位置的型号信息
+    if (!locationModels.has(locationKey)) {
+      locationModels.set(locationKey, new Map())
+    }
+    const locationModelMap = locationModels.get(locationKey)!
+    const existing = locationModelMap.get(brandModelKey)
+    if (existing) {
+      existing.count++
+    } else {
+      locationModelMap.set(brandModelKey, { brand, model, count: 1 })
+    }
   })
 
   const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
     locationId: locationName,
     locationName,
-    count
+    count,
+    models: Array.from(locationModels.get(locationName)?.values() || []).sort((a, b) => b.count - a.count)
   }))
 
   const byBrandModel: BrandModelStats[] = Array.from(brandModelCounts.values())
@@ -511,6 +539,99 @@ async function fetchRouterStatsFromSupabase(): Promise<{
       overview,
       byLocation: []
     }
+  }
+}
+
+/**
+ * 从 Supabase 获取打印机统计（用于获取真实数据）
+ */
+async function fetchPrinterStatsFromSupabase(): Promise<{
+  overview: AssetStats
+  byLocation: LocationStats[]
+  byBrandModel: BrandModelStats[]
+}> {
+  const overview: AssetStats = {
+    total: 0,
+    available: 0,
+    inUse: 0,
+    maintenance: 0,
+    borrowed: 0
+  }
+
+  // 从 printer_instances 表查询打印机实例数据
+  const { data, error } = await supabase
+    .from('printer_instances')
+    .select('id, printer_model, status, location')
+
+  if (error) throw error
+
+  const locationCounts = new Map<string, number>()
+  const locationModels = new Map<string, Map<string, { brand: string; model: string; count: number }>>()
+  const brandModelCounts = new Map<string, { brand: string; model: string; count: number }>()
+
+  data?.forEach(item => {
+    overview.total++
+    
+    // printer_instances 的 status: 'in-house' | 'deployed' | 'idle'
+    switch (item.status) {
+      case 'in-house':
+        overview.available++
+        break
+      case 'deployed':
+        overview.inUse++
+        break
+      case 'idle':
+        overview.maintenance++
+        break
+      default:
+        overview[item.status] = (overview[item.status] || 0) + 1
+    }
+
+    const locationName = item.location || '未指定位置'
+    locationCounts.set(locationName, (locationCounts.get(locationName) ?? 0) + 1)
+
+    // printer_model 格式如: "EPSON-L8058", "DNP-自购", "西铁城CX-02", "HITI诚研P525L"
+    const printerModel = item.printer_model || '未知型号'
+    // 用连字符或空格分割，取第一个作为品牌
+    const parts = printerModel.split(/[-\s]/)
+    const brand = parts[0] || '未知品牌'
+    const model = parts.slice(1).join('-') || '未知型号'
+    const brandModelKey = `${brand}|${model}`
+    
+    const existingBrandModel = brandModelCounts.get(brandModelKey)
+    if (existingBrandModel) {
+      existingBrandModel.count++
+    } else {
+      brandModelCounts.set(brandModelKey, { brand, model, count: 1 })
+    }
+
+    // 记录每个位置的型号信息
+    if (!locationModels.has(locationName)) {
+      locationModels.set(locationName, new Map())
+    }
+    const locationModelMap = locationModels.get(locationName)!
+    const existing = locationModelMap.get(brandModelKey)
+    if (existing) {
+      existing.count++
+    } else {
+      locationModelMap.set(brandModelKey, { brand, model, count: 1 })
+    }
+  })
+
+  const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
+    locationId: locationName,
+    locationName,
+    count,
+    models: Array.from(locationModels.get(locationName)?.values() || []).sort((a, b) => b.count - a.count)
+  }))
+
+  const byBrandModel: BrandModelStats[] = Array.from(brandModelCounts.values())
+    .sort((a, b) => b.count - a.count)
+
+  return {
+    overview,
+    byLocation,
+    byBrandModel
   }
 }
 
