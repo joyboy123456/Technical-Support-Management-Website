@@ -52,7 +52,47 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   // 刷新设备列表
   const refreshDevices = React.useCallback(async () => {
     const data = await getDevices();
-    setDevices(data);
+
+    // 统一排序规则：
+    // - 含数字的中文名称按数字升序（魔镜1号 < 魔镜10号）
+    // - 英文名按创建时间排序（使用 createdAt 或 id 中的时间戳）
+    // - 其他名称使用中文自然排序
+    const extractNumber = (s: string): number | null => {
+      const m = s.match(/(\d+)/);
+      return m ? parseInt(m[1], 10) : null;
+    };
+    const isEnglishName = (s: string): boolean => /[A-Za-z]/.test(s) && /^[\x00-\x7F]+$/.test(s);
+    const getCreatedTs = (d: any): number => {
+      if (d.createdAt) {
+        const t = new Date(d.createdAt).getTime();
+        if (!isNaN(t)) return t;
+      }
+      if (typeof d.id === 'string') {
+        const m = d.id.match(/^dev-(\d+)$/);
+        if (m) return parseInt(m[1], 10);
+      }
+      return 0;
+    };
+    const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+
+    const sorted = [...data].sort((a: any, b: any) => {
+      const numA = extractNumber(a.name);
+      const numB = extractNumber(b.name);
+      const engA = isEnglishName(a.name);
+      const engB = isEnglishName(b.name);
+
+      const rank = (n: number | null, eng: boolean) => (n !== null ? 0 : (eng ? 1 : 2));
+      const ra = rank(numA, engA);
+      const rb = rank(numB, engB);
+
+      if (ra !== rb) return ra - rb;
+      if (ra === 0) return (numA! - numB!);              // 数字名：按数字升序
+      if (ra === 1) return (getCreatedTs(a) - getCreatedTs(b)); // 英文名：按创建时间升序
+
+      return collator.compare(a.name, b.name);           // 其他名称：自然排序
+    });
+
+    setDevices(sorted);
   }, []);
 
   // 创建新设备
