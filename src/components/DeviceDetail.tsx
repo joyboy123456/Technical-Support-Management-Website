@@ -553,7 +553,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                         size="sm"
                         variant="ghost"
                         onClick={async () => {
-                          const success = await updateDevice(deviceId, { coverImage: '' });
+                          const success = await updateDevice(deviceId, { coverImage: null as any });
                           if (success) {
                             await refreshDevice();
                             toast.success('已删除封面图');
