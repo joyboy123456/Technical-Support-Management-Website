@@ -2,13 +2,8 @@
 import { isSupabaseConfigured } from '../lib/supabase';
 import { fetchInventory, updateInventoryData } from '../services/inventoryService';
 
-// 打印机型号枚举
-export type PrinterModel =
-  | 'EPSON-L18058'  // A3
-  | 'EPSON-L8058'   // A4
-  | 'DNP-微印创'
-  | 'DNP-自购'
-  | 'DNP-锦联';
+// 打印机型号类型（支持任意字符串，兼容数据库中的动态型号）
+export type PrinterModel = string;
 
 // EPSON 打印机墨水库存
 export interface EPSONInkStock {
@@ -18,25 +13,10 @@ export interface EPSONInkStock {
   K: number;  // 黑色墨水（瓶数）
 }
 
-// 按打印机型号分类的相纸库存
+// 按打印机型号分类的相纸库存（动态结构，支持任意打印机型号和相纸类型）
 export interface PrinterPaperStock {
-  'EPSON-L18058': {
-    A3: number;  // A3相纸数量
-  };
-  'EPSON-L8058': {
-    A4: number;  // A4相纸数量
-  };
-  'DNP-微印创': {
-    '6寸': number;
-    '8寸': number;
-  };
-  'DNP-自购': {
-    '6寸': number;
-    '8寸': number;
-  };
-  'DNP-锦联': {
-    '6寸': number;
-    '8寸': number;
+  [printerModel: string]: {
+    [paperType: string]: number;
   };
 }
 
@@ -201,14 +181,17 @@ export const getPrinterPaperStock = (inventory: Inventory, printerModel: Printer
  * 获取打印机型号显示名称
  */
 export const getPrinterDisplayName = (model: PrinterModel): string => {
-  const names: Record<PrinterModel, string> = {
+  // 兼容旧版本的固定型号
+  const legacyNames: Record<string, string> = {
     'EPSON-L18058': 'EPSON L18058 (A3)',
     'EPSON-L8058': 'EPSON L8058 (A4)',
     'DNP-微印创': 'DNP 微印创',
     'DNP-自购': 'DNP 自购',
     'DNP-锦联': 'DNP 锦联'
   };
-  return names[model];
+  
+  // 如果是旧版本型号，返回映射名称；否则返回原始型号
+  return legacyNames[model] || model;
 };
 
 /**
