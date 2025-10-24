@@ -5,6 +5,25 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Label } from './ui/label';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from './ui/select';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { 
   getInventory, 
   updateInventory, 
@@ -180,6 +199,50 @@ export function InventoryManagement() {
         return { icon: '🔴', color: 'bg-red-100 text-red-700', label: '外放' };
       case 'idle':
         return { icon: '⚪', color: 'bg-gray-100 text-gray-700', label: '闲置' };
+    }
+  };
+
+  // 保存编辑的设备实例
+  const handleSaveInstance = async () => {
+    if (!editingInstance) return;
+
+    try {
+      const { updatePrinterInstance } = await import('../services/printerInstanceService');
+      const success = await updatePrinterInstance(editingInstance.id, editingInstance);
+      
+      if (success) {
+        toast.success('设备实例已更新');
+        setEditDialogOpen(false);
+        setEditingInstance(null);
+        await loadInventory(); // 重新加载数据
+      } else {
+        toast.error('更新失败');
+      }
+    } catch (error) {
+      console.error('保存设备实例失败:', error);
+      toast.error('更新失败');
+    }
+  };
+
+  // 删除设备实例
+  const handleDeleteInstance = async () => {
+    if (!instanceToDelete) return;
+
+    try {
+      const { deletePrinterInstance } = await import('../services/printerInstanceService');
+      const success = await deletePrinterInstance(instanceToDelete.id);
+      
+      if (success) {
+        toast.success('设备实例已删除');
+        setDeleteConfirmOpen(false);
+        setInstanceToDelete(null);
+        await loadInventory(); // 重新加载数据
+      } else {
+        toast.error('删除失败');
+      }
+    } catch (error) {
+      console.error('删除设备实例失败:', error);
+      toast.error('删除失败');
     }
   };
 
@@ -395,7 +458,7 @@ export function InventoryManagement() {
                                     return (
                                       <div
                                         key={instance.id}
-                                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-xs"
+                                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-xs hover:bg-muted/50 transition-colors"
                                       >
                                         <div className="flex items-center gap-2 flex-1">
                                           <span className={`px-2 py-1 rounded text-xs ${statusInfo.color}`}>
@@ -403,11 +466,35 @@ export function InventoryManagement() {
                                           </span>
                                           <span className="font-medium">{instance.id}</span>
                                         </div>
-                                        <div className="text-right text-muted-foreground">
-                                          <div>{instance.location}</div>
-                                          {instance.deployedDate && (
-                                            <div className="text-[10px]">{instance.deployedDate}</div>
-                                          )}
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-right text-muted-foreground mr-2">
+                                            <div>{instance.location}</div>
+                                            {instance.deployedDate && (
+                                              <div className="text-[10px]">{instance.deployedDate}</div>
+                                            )}
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0"
+                                            onClick={() => {
+                                              setEditingInstance(instance);
+                                              setEditDialogOpen(true);
+                                            }}
+                                          >
+                                            <Edit2 className="w-3 h-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                            onClick={() => {
+                                              setInstanceToDelete(instance);
+                                              setDeleteConfirmOpen(true);
+                                            }}
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </Button>
                                         </div>
                                       </div>
                                     );
@@ -577,6 +664,114 @@ export function InventoryManagement() {
           </div>
         </div>
       )}
+
+      {/* 编辑设备实例对话框 */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>编辑设备实例</DialogTitle>
+          </DialogHeader>
+          {editingInstance && (
+            <div className="space-y-4">
+              <div>
+                <Label>设备编号 *</Label>
+                <Input
+                  value={editingInstance.id}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div>
+                <Label>打印机型号</Label>
+                <Input
+                  value={getPrinterDisplayName(editingInstance.printerModel)}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div>
+                <Label>序列号</Label>
+                <Input
+                  value={editingInstance.serialNumber || ''}
+                  onChange={(e) => setEditingInstance({ ...editingInstance, serialNumber: e.target.value })}
+                  placeholder="选填"
+                />
+              </div>
+              <div>
+                <Label>状态 *</Label>
+                <Select
+                  value={editingInstance.status}
+                  onValueChange={(value: PrinterInstance['status']) => 
+                    setEditingInstance({ ...editingInstance, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="in-house">在库</SelectItem>
+                    <SelectItem value="deployed">外放</SelectItem>
+                    <SelectItem value="idle">闲置</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>位置/去向 *</Label>
+                <Input
+                  value={editingInstance.location}
+                  onChange={(e) => setEditingInstance({ ...editingInstance, location: e.target.value })}
+                  placeholder="例如：展厅/调试间、西溪湿地"
+                />
+              </div>
+              <div>
+                <Label>外放日期</Label>
+                <Input
+                  type="date"
+                  value={editingInstance.deployedDate || ''}
+                  onChange={(e) => setEditingInstance({ ...editingInstance, deployedDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>备注</Label>
+                <Input
+                  value={editingInstance.notes || ''}
+                  onChange={(e) => setEditingInstance({ ...editingInstance, notes: e.target.value })}
+                  placeholder="选填"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSaveInstance}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除设备实例</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除设备实例 "{instanceToDelete?.id}" 吗？此操作无法撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteInstance}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
