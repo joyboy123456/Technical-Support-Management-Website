@@ -553,9 +553,14 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                         size="sm"
                         variant="ghost"
                         onClick={async () => {
-                          await updateDevice(deviceId, { coverImage: undefined });
-                          await refreshDevice();
-                          toast.success('已删除封面图');
+                          // 传入 null 明确将数据库字段置空
+                          const ok = await updateDevice(deviceId, { coverImage: null });
+                          if (ok) {
+                            await refreshDevice();
+                            toast.success('已删除封面图');
+                          } else {
+                            toast.error('删除封面图失败');
+                          }
                         }}
                       >
                         <X className="w-4 h-4" />

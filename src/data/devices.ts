@@ -8,7 +8,7 @@ export interface Device {
   owner: string;
   status: '运行中' | '离线' | '维护';
   deviceType?: string; // 设备类型（如：二次元机、普通机等）
-  coverImage?: string; // 设备封面图
+  coverImage?: string | null; // 设备封面图（允许为 null 表示删除）
   images?: string[]; // 设备相册
   printer: {
     model: string;
