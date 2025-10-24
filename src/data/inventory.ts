@@ -181,17 +181,17 @@ export const getPrinterPaperStock = (inventory: Inventory, printerModel: Printer
  * 获取打印机型号显示名称
  */
 export const getPrinterDisplayName = (model: PrinterModel): string => {
-  // 兼容旧版本的固定型号
-  const legacyNames: Record<string, string> = {
-    'EPSON-L18058': 'EPSON L18058 (A3)',
+  const displayNames: Record<string, string> = {
+    'DNP-锦联': 'DNP DS-RX1HS (锦联)',
+    'DNP-微印创': 'DNP DS-RX1HS (微印创)',
+    'DNP-自购': 'DNP DS-RX1HS (自购)',
     'EPSON-L8058': 'EPSON L8058 (A4)',
-    'DNP-微印创': 'DNP 微印创',
-    'DNP-自购': 'DNP 自购',
-    'DNP-锦联': 'DNP 锦联'
+    'EPSON-L18058': 'EPSON L18058 (A3)',
+    '西铁城CX-02': '西铁城 CX-02',
+    'HITI诚研P525L': 'HITI 诚研 P525L'
   };
   
-  // 如果是旧版本型号，返回映射名称；否则返回原始型号
-  return legacyNames[model] || model;
+  return displayNames[model] || model;
 };
 
 /**

@@ -824,7 +824,25 @@ export function OutboundManagement() {
                     <SelectValue placeholder="选择打印机型号" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(inventory.paperStock).map((model) => (
+                    {Object.keys(inventory.paperStock).sort((a, b) => {
+                      // 定义打印机型号的显示顺序
+                      const order = [
+                        'DNP-自购',
+                        'DNP-锦联',
+                        'DNP-微印创',
+                        'EPSON-L8058',
+                        'EPSON-L18058',
+                        '西铁城CX-02',
+                        'HITI诚研P525L'
+                      ];
+                      const indexA = order.indexOf(a);
+                      const indexB = order.indexOf(b);
+                      // 如果型号在order中，按order排序；否则放到最后按字母排序
+                      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                      if (indexA !== -1) return -1;
+                      if (indexB !== -1) return 1;
+                      return a.localeCompare(b, 'zh-CN');
+                    }).map((model) => (
                       <SelectItem key={model} value={model}>
                         {getPrinterDisplayName(model as PrinterModel)}
                       </SelectItem>
