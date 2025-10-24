@@ -10,6 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Audit } from './pages/Audit';
 import { OutboundManagement } from './pages/OutboundManagement';
 import { Toaster } from './components/ui/sonner';
+import { SupabaseStatus } from './components/SupabaseStatus';
 
 // 创建 QueryClient 实例
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <Toaster />
+      <SupabaseStatus />
     </div>
   );
 }
