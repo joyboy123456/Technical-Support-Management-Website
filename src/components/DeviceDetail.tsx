@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package, Move, RotateCcw, Recycle, Upload, X, Tag } from 'lucide-react';
+import { ArrowLeft, Plus, Wrench, TestTube, Calendar, User, MapPin, Settings, Printer, AlertCircle, Edit, Package, Move, RotateCcw, Recycle, Upload, X, Tag, Link } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -12,6 +12,7 @@ import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { getDevice, updateDevice, addMaintenanceLog, Device } from '../data/devices';
 import { getInventory, checkStockLevel, Inventory, getPrinterPaperStock, isEpsonPrinter, PrinterModel } from '../data/inventory';
+import { getOutboundRecords } from '../services/outboundService';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { EditDeviceDialog } from './EditDeviceDialog';
 import { ActionModal } from './ActionModal';
@@ -38,6 +39,9 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
   const [imageType, setImageType] = React.useState<'cover' | 'gallery'>('cover');
   const [uploading, setUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isOutbound, setIsOutbound] = React.useState(false);
+  const [bindPrinterDialogOpen, setBindPrinterDialogOpen] = React.useState(false);
+  const [selectedPrinterModel, setSelectedPrinterModel] = React.useState('');
 
   // 刷新设备数据
   const refreshDevice = React.useCallback(async () => {
@@ -62,11 +66,26 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
     }
   }, []);
 
+  // 检查设备是否被带出
+  const checkOutboundStatus = React.useCallback(async () => {
+    try {
+      const records = await getOutboundRecords();
+      const hasOutbound = records.some(
+        record => record.deviceId === deviceId && record.status === 'outbound'
+      );
+      setIsOutbound(hasOutbound);
+    } catch (error) {
+      console.error('Failed to check outbound status:', error);
+      setIsOutbound(false);
+    }
+  }, [deviceId]);
+
   // 当deviceId变化时更新设备数据
   React.useEffect(() => {
     refreshDevice();
     loadInventory();
-  }, [deviceId, refreshDevice, loadInventory]);
+    checkOutboundStatus();
+  }, [deviceId, refreshDevice, loadInventory, checkOutboundStatus]);
 
   // 加载中状态
   if (loading) {
@@ -201,6 +220,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
     setActionModalOpen(false);
     setSelectedAction(null);
     refreshDevice();
+    checkOutboundStatus(); // 刷新出库状态
     toast.success('操作已成功完成');
   };
 
@@ -292,9 +312,22 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                     <span className="text-muted-foreground">序列号:</span>
                     <span>{device.serial}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">打印机型号:</span>
-                    <span>{device.printerModel}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{device.printerModel}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2"
+                        onClick={() => {
+                          setSelectedPrinterModel(device.printer.model);
+                          setBindPrinterDialogOpen(true);
+                        }}
+                      >
+                        <Link className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -304,7 +337,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">负责人:</span>
-                    <span>{device.owner}</span>
+                    <span>{isOutbound ? device.owner : '-'}</span>
                   </div>
                 </div>
               </div>
@@ -314,9 +347,22 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
           {/* 关联打印机 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Printer className="w-5 h-5" />
-                关联打印机
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Printer className="w-5 h-5" />
+                  关联打印机
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedPrinterModel(device.printer.model);
+                    setBindPrinterDialogOpen(true);
+                  }}
+                >
+                  <Link className="w-4 h-4 mr-1" />
+                  更换绑定
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -324,7 +370,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">打印机型号:</span>
-                    <span>{device.printer.model}</span>
+                    <span className="font-medium">{device.printer.model}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">纸张规格:</span>
@@ -904,6 +950,136 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
           model_id: deviceId
         } : undefined}
       />
+
+      {/* 绑定打印机对话框 */}
+      <Dialog open={bindPrinterDialogOpen} onOpenChange={setBindPrinterDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>绑定打印机</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="printer-model">选择打印机型号</Label>
+              <Select 
+                value={selectedPrinterModel} 
+                onValueChange={setSelectedPrinterModel}
+              >
+                <SelectTrigger id="printer-model">
+                  <SelectValue placeholder="请选择打印机型号" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EPSON-L8058">EPSON-L8058</SelectItem>
+                  <SelectItem value="EPSON-L18058">EPSON-L18058</SelectItem>
+                  <SelectItem value="DNP-微印创">DNP-微印创</SelectItem>
+                  <SelectItem value="DNP-自购">DNP-自购</SelectItem>
+                  <SelectItem value="DNP-锦联">DNP-锦联</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 预览库存信息 */}
+            {selectedPrinterModel && inventory && (
+              <div className="border rounded-lg p-3 space-y-2">
+                <h4 className="text-sm font-medium">该型号库存信息</h4>
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">打印机型号:</span>
+                    <span>{selectedPrinterModel}</span>
+                  </div>
+                  {(() => {
+                    const stock = getPrinterPaperStock(inventory, selectedPrinterModel as PrinterModel);
+                    if (!stock || Object.keys(stock).length === 0) {
+                      return (
+                        <div className="text-xs text-muted-foreground">该型号暂无库存数据</div>
+                      );
+                    }
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">相纸总量:</span>
+                          <span>{Object.values(stock).reduce((a, b) => a + b, 0)} 张</span>
+                        </div>
+                        <div className="pl-4 space-y-1">
+                          {Object.entries(stock).map(([type, quantity]) => (
+                            <div key={type} className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">{type}:</span>
+                              <span>{quantity} 张</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                  {isEpsonPrinter(selectedPrinterModel) && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">墨水总量:</span>
+                        <span>{Object.values(inventory.epsonInkStock).reduce((a, b) => a + b, 0)} 瓶</span>
+                      </div>
+                      <div className="pl-4 space-y-1">
+                        {Object.entries(inventory.epsonInkStock).map(([color, quantity]) => {
+                          const colorName = color === 'C' ? '青色' : color === 'M' ? '品红' : color === 'Y' ? '黄色' : '黑色';
+                          return (
+                            <div key={color} className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">{colorName}({color}):</span>
+                              <span>{quantity} 瓶</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBindPrinterDialogOpen(false);
+                  setSelectedPrinterModel('');
+                }}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedPrinterModel) {
+                    toast.error('请选择打印机型号');
+                    return;
+                  }
+
+                  try {
+                    // 更新设备的打印机型号
+                    const success = await updateDevice(deviceId, {
+                      printer: {
+                        ...device.printer,
+                        model: selectedPrinterModel
+                      }
+                    });
+
+                    if (success) {
+                      await refreshDevice();
+                      await loadInventory();
+                      setBindPrinterDialogOpen(false);
+                      toast.success(`已成功绑定打印机: ${selectedPrinterModel}`);
+                    } else {
+                      toast.error('绑定失败');
+                    }
+                  } catch (error) {
+                    console.error('绑定打印机失败:', error);
+                    toast.error('绑定失败');
+                  }
+                }}
+                disabled={!selectedPrinterModel}
+              >
+                确认绑定
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
