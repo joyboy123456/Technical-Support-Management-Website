@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { OutboundRecord, OutboundItem, ReturnInfo, getInventory, updateInventory } from '../data/inventory';
 import { getDevice, updateDevice } from '../data/devices';
 
@@ -19,10 +19,6 @@ interface OutboundRecordRow {
   device_instance_id?: string;
 }
 
-// 本地内存存储（用于演示模式）
-let localOutboundRecords: OutboundRecord[] = [];
-let nextRecordId = 1;
-
 /**
  * 检查设备是否已有未归还的出库记录
  */
@@ -32,46 +28,30 @@ async function checkExistingOutbound(deviceId: string): Promise<{
   destination?: string;
 }> {
   try {
-    if (isSupabaseConfigured) {
-      // 从 Supabase 检查
-      const { data, error } = await supabase
-        .from('outbound_records')
-        .select('created_at, destination')
-        .eq('device_id', deviceId)
-        .eq('status', 'outbound')
-        .limit(1)
-        .single();
+    const { data, error } = await supabase
+      .from('outbound_records')
+      .select('created_at, destination')
+      .eq('device_id', deviceId)
+      .eq('status', 'outbound')
+      .limit(1)
+      .single();
 
-      if (error) {
-        // 如果没有找到记录，error.code 会是 'PGRST116'
-        if (error.code === 'PGRST116') {
-          return { hasOutbound: false };
-        }
-        throw error;
+    if (error) {
+      // 如果没有找到记录，error.code 会是 'PGRST116'
+      if (error.code === 'PGRST116') {
+        return { hasOutbound: false };
       }
-
-      if (data) {
-        return {
-          hasOutbound: true,
-          outboundDate: new Date(data.created_at).toLocaleString('zh-CN'),
-          destination: data.destination
-        };
-      }
-      return { hasOutbound: false };
-    } else {
-      // 从本地内存检查
-      const existingRecord = localOutboundRecords.find(
-        r => r.deviceId === deviceId && r.status === 'outbound'
-      );
-      if (existingRecord) {
-        return {
-          hasOutbound: true,
-          outboundDate: new Date(existingRecord.date).toLocaleString('zh-CN'),
-          destination: existingRecord.destination
-        };
-      }
-      return { hasOutbound: false };
+      throw error;
     }
+
+    if (data) {
+      return {
+        hasOutbound: true,
+        outboundDate: new Date(data.created_at).toLocaleString('zh-CN'),
+        destination: data.destination
+      };
+    }
+    return { hasOutbound: false };
   } catch (error) {
     console.error('检查出库记录失败:', error);
     // 出错时保守处理，返回 false 以免阻止正常出库
@@ -110,76 +90,56 @@ export async function createOutboundRecord(
     }
 
     // 3. 创建出库记录
-    if (isSupabaseConfigured) {
-      // 使用 Supabase
-      const { data: outboundData, error: outboundError } = await supabase
-        .from('outbound_records')
-        .insert({
-          device_id: record.deviceId,
-          device_name: record.deviceName,
-          destination: record.destination,
-          operator: record.operator,
-          items: record.items,
-          notes: record.notes,
-          status: 'outbound',
-          original_location: originalLocation,
-          original_owner: originalOwner,
-          device_instance_id: record.deviceInstanceId || null
-        })
-        .select()
-        .single();
-
-      if (outboundError) throw outboundError;
-
-      // 如果关联了打印机设备实例，自动更新其状态
-      if (record.deviceInstanceId) {
-        try {
-          const { updatePrinterInstance } = await import('./printerInstanceService');
-          await updatePrinterInstance(record.deviceInstanceId, {
-            status: 'deployed',
-            location: record.destination,
-            deployedDate: new Date().toISOString().split('T')[0]
-          });
-          console.log(`✅ 已自动更新打印机实例 ${record.deviceInstanceId} 状态为外放`);
-        } catch (error) {
-          console.error('更新打印机实例状态失败:', error);
-          // 不影响出库流程，继续执行
-        }
-      }
-
-      // 创建审计日志
-      await createAuditLog({
-        action_type: '出库',
-        entity_type: 'outbound_record',
-        entity_id: outboundData.id,
-        operator: record.operator,
-        details: {
-          deviceId: record.deviceId,
-          deviceName: record.deviceName,
-          destination: record.destination,
-          items: record.items,
-          originalLocation,
-          originalOwner
-        }
-      });
-    } else {
-      // 使用本地内存存储
-      const newRecord: OutboundRecord = {
-        id: `local-${nextRecordId++}`,
-        date: new Date().toISOString(),
-        deviceId: record.deviceId,
-        deviceName: record.deviceName,
+    const { data: outboundData, error: outboundError } = await supabase
+      .from('outbound_records')
+      .insert({
+        device_id: record.deviceId,
+        device_name: record.deviceName,
         destination: record.destination,
         operator: record.operator,
         items: record.items,
         notes: record.notes,
         status: 'outbound',
+        original_location: originalLocation,
+        original_owner: originalOwner,
+        device_instance_id: record.deviceInstanceId || null
+      })
+      .select()
+      .single();
+
+    if (outboundError) throw outboundError;
+
+    // 如果关联了打印机设备实例，自动更新其状态
+    if (record.deviceInstanceId) {
+      try {
+        const { updatePrinterInstance } = await import('./printerInstanceService');
+        await updatePrinterInstance(record.deviceInstanceId, {
+          status: 'deployed',
+          location: record.destination,
+          deployedDate: new Date().toISOString().split('T')[0]
+        });
+        console.log(`✅ 已自动更新打印机实例 ${record.deviceInstanceId} 状态为外放`);
+      } catch (error) {
+        console.error('更新打印机实例状态失败:', error);
+        // 不影响出库流程，继续执行
+      }
+    }
+
+    // 创建审计日志
+    await createAuditLog({
+      action_type: '出库',
+      entity_type: 'outbound_record',
+      entity_id: outboundData.id,
+      operator: record.operator,
+      details: {
+        deviceId: record.deviceId,
+        deviceName: record.deviceName,
+        destination: record.destination,
+        items: record.items,
         originalLocation,
         originalOwner
-      };
-      localOutboundRecords.push(newRecord);
-      console.log('✅ 出库记录已保存到本地内存:', newRecord);
-    }
+      }
+    });
 
     // 4. 更新设备位置和负责人
     const deviceUpdateSuccess = await updateDevice(record.deviceId, {
@@ -209,21 +169,13 @@ export async function createOutboundRecord(
  */
 export async function getOutboundRecords(): Promise<OutboundRecord[]> {
   try {
-    if (isSupabaseConfigured) {
-      // 从 Supabase 获取
-      const { data, error } = await supabase
-        .from('outbound_records')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('outbound_records')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return (data || []).map(mapRowToOutboundRecord);
-    } else {
-      // 从本地内存获取
-      return [...localOutboundRecords].sort((a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-    }
+    if (error) throw error;
+    return (data || []).map(mapRowToOutboundRecord);
   } catch (error) {
     console.error('获取出库记录失败:', error);
     return [];
@@ -235,20 +187,14 @@ export async function getOutboundRecords(): Promise<OutboundRecord[]> {
  */
 export async function getOutboundRecord(id: string): Promise<OutboundRecord | null> {
   try {
-    if (isSupabaseConfigured) {
-      // 从 Supabase 获取
-      const { data, error } = await supabase
-        .from('outbound_records')
-        .select('*')
-        .eq('id', id)
-        .single();
+    const { data, error } = await supabase
+      .from('outbound_records')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-      if (error) throw error;
-      return data ? mapRowToOutboundRecord(data) : null;
-    } else {
-      // 从本地内存获取
-      return localOutboundRecords.find(r => r.id === id) || null;
-    }
+    if (error) throw error;
+    return data ? mapRowToOutboundRecord(data) : null;
   } catch (error) {
     console.error('获取出库记录失败:', error);
     return null;
@@ -274,45 +220,31 @@ export async function returnOutboundItems(
     }
 
     // 2. 更新出库记录状态
-    if (isSupabaseConfigured) {
-      // 使用 Supabase
-      const { error: updateError } = await supabase
-        .from('outbound_records')
-        .update({
-          status: 'returned',
-          return_info: {
-            returnDate: new Date().toISOString(),
-            ...returnInfo
-          }
-        })
-        .eq('id', recordId);
-
-      if (updateError) throw updateError;
-
-      // 创建审计日志
-      await createAuditLog({
-        action_type: '归还',
-        entity_type: 'outbound_record',
-        entity_id: recordId,
-        operator: returnInfo.returnOperator,
-        details: {
-          returnedItems: returnInfo.returnedItems,
-          equipmentDamage: returnInfo.equipmentDamage,
-          returnNotes: returnInfo.returnNotes
-        }
-      });
-    } else {
-      // 使用本地内存存储
-      const localRecord = localOutboundRecords.find(r => r.id === recordId);
-      if (localRecord) {
-        localRecord.status = 'returned';
-        localRecord.returnInfo = {
+    const { error: updateError } = await supabase
+      .from('outbound_records')
+      .update({
+        status: 'returned',
+        return_info: {
           returnDate: new Date().toISOString(),
           ...returnInfo
-        };
-        console.log('✅ 归还记录已更新到本地内存:', localRecord);
+        }
+      })
+      .eq('id', recordId);
+
+    if (updateError) throw updateError;
+
+    // 创建审计日志
+    await createAuditLog({
+      action_type: '归还',
+      entity_type: 'outbound_record',
+      entity_id: recordId,
+      operator: returnInfo.returnOperator,
+      details: {
+        returnedItems: returnInfo.returnedItems,
+        equipmentDamage: returnInfo.equipmentDamage,
+        returnNotes: returnInfo.returnNotes
       }
-    }
+    });
 
     // 3. 恢复设备位置和负责人
     const updates: any = {};
@@ -364,19 +296,15 @@ export async function returnOutboundItems(
  */
 export async function deleteOutboundRecord(recordId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    if (isSupabaseConfigured) {
-      const { error, data } = await supabase
-        .from('outbound_records')
-        .delete()
-        .eq('id', recordId)
-        .select('id');
+    const { error, data } = await supabase
+      .from('outbound_records')
+      .delete()
+      .eq('id', recordId)
+      .select('id');
 
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        throw new Error('未能删除出库记录，可能是权限限制');
-      }
-    } else {
-      localOutboundRecords = localOutboundRecords.filter(record => record.id !== recordId);
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('未能删除出库记录，可能是权限限制');
     }
 
     return { success: true };
