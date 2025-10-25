@@ -11,6 +11,7 @@ import { Audit } from './pages/Audit';
 import { OutboundManagement } from './pages/OutboundManagement';
 import { Toaster } from './components/ui/sonner';
 import { SupabaseGate } from './components/SupabaseGate';
+import { DeviceFlow } from './pages/DeviceFlow';
 
 // 创建 QueryClient 实例
 const queryClient = new QueryClient({
@@ -81,6 +82,7 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/audit" element={<Audit />} />
               <Route path="/outbound" element={<OutboundManagement />} />
+              <Route path="/device-flow" element={<DeviceFlow />} />
 
               {/* 现有功能页面（保持兼容） */}
               <Route path="/inventory" element={<InventoryManagement />} />

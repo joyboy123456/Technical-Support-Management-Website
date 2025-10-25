@@ -46,6 +46,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
     { id: 'inventory-management', type: 'page', title: '库存管理', path: '/inventory' },
     { id: 'outbound', type: 'page', title: '出库管理', path: '/outbound' },
     { id: 'audit', type: 'page', title: '审计日志', path: '/audit' },
+    { id: 'device-flow', type: 'page', title: '设备管理流程图', path: '/device-flow' },
     ...sidebarItems.filter(item => !['home', 'inventory-management'].includes(item.id))
   ];
 
