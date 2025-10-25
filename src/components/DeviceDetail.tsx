@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { getDevice, updateDevice, addMaintenanceLog, Device } from '../data/devices';
-import { getInventory, checkStockLevel, Inventory, getPrinterPaperStock, isEpsonPrinter, PrinterModel } from '../data/inventory';
+import { getInventory, checkStockLevel, Inventory, getPrinterPaperStock, isEpsonPrinter, PrinterModel, OutboundRecord } from '../data/inventory';
 import { getOutboundRecords } from '../services/outboundService';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { EditDeviceDialog } from './EditDeviceDialog';
@@ -40,6 +40,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
   const [uploading, setUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isOutbound, setIsOutbound] = React.useState(false);
+  const [currentOutboundRecord, setCurrentOutboundRecord] = React.useState<OutboundRecord | null>(null);
   const [bindPrinterDialogOpen, setBindPrinterDialogOpen] = React.useState(false);
   const [selectedPrinterModel, setSelectedPrinterModel] = React.useState('');
 
@@ -70,15 +71,37 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
   const checkOutboundStatus = React.useCallback(async () => {
     try {
       const records = await getOutboundRecords();
-      const hasOutbound = records.some(
+      const outboundRecord = records.find(
         record => record.deviceId === deviceId && record.status === 'outbound'
       );
-      setIsOutbound(hasOutbound);
+      setIsOutbound(!!outboundRecord);
+      setCurrentOutboundRecord(outboundRecord || null);
     } catch (error) {
       console.error('Failed to check outbound status:', error);
       setIsOutbound(false);
+      setCurrentOutboundRecord(null);
     }
   }, [deviceId]);
+
+  // 计算外放天数
+  const calculateOutboundDays = React.useCallback(() => {
+    if (!currentOutboundRecord) return 0;
+    const outboundDate = new Date(currentOutboundRecord.date);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - outboundDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }, [currentOutboundRecord]);
+
+  // 获取当前持有人信息
+  const getCurrentHolder = React.useCallback(() => {
+    if (!device) return '公司';
+    if (isOutbound && currentOutboundRecord) {
+      const days = calculateOutboundDays();
+      return `${currentOutboundRecord.operator} (外放${days}天)`;
+    }
+    return device.owner || '公司';
+  }, [device, isOutbound, currentOutboundRecord, calculateOutboundDays]);
 
   // 当deviceId变化时更新设备数据
   React.useEffect(() => {
@@ -336,8 +359,8 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
                     <span>{device.location}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">负责人:</span>
-                    <span>{isOutbound ? device.owner : '-'}</span>
+                    <span className="text-muted-foreground">当前持有人:</span>
+                    <span className={isOutbound ? 'text-orange-600 font-medium' : ''}>{getCurrentHolder()}</span>
                   </div>
                 </div>
               </div>
@@ -879,7 +902,7 @@ export function DeviceDetail({ deviceId, onBack }: DeviceDetailProps) {
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">姓名:</span>
-                <span>{device.owner}</span>
+                <span className={isOutbound ? 'text-orange-600 font-medium' : ''}>{getCurrentHolder()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">联系方式:</span>

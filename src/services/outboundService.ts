@@ -315,27 +315,22 @@ export async function returnOutboundItems(
     }
 
     // 3. 恢复设备位置和负责人
-    if (record.originalLocation || record.originalOwner) {
-      const updates: any = {};
+    const updates: any = {};
+    if (record.originalLocation) {
+      updates.location = record.originalLocation;
+    }
+    // 归还时将负责人设为"公司"（如果原负责人为空）或恢复原负责人
+    updates.owner = record.originalOwner || '公司';
+
+    const deviceUpdateSuccess = await updateDevice(record.deviceId, updates);
+
+    if (!deviceUpdateSuccess) {
+      console.warn('⚠️ 设备信息恢复失败');
+    } else {
       if (record.originalLocation) {
-        updates.location = record.originalLocation;
+        console.log('✅ 设备位置已恢复:', record.destination, '→', record.originalLocation);
       }
-      if (record.originalOwner) {
-        updates.owner = record.originalOwner;
-      }
-
-      const deviceUpdateSuccess = await updateDevice(record.deviceId, updates);
-
-      if (!deviceUpdateSuccess) {
-        console.warn('⚠️ 设备信息恢复失败');
-      } else {
-        if (record.originalLocation) {
-          console.log('✅ 设备位置已恢复:', record.destination, '→', record.originalLocation);
-        }
-        if (record.originalOwner) {
-          console.log('✅ 设备负责人已恢复为:', record.originalOwner);
-        }
-      }
+      console.log('✅ 设备负责人已恢复为:', updates.owner);
     }
 
     // 3.5. 如果关联了打印机设备实例，自动恢复其状态
