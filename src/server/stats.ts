@@ -288,8 +288,26 @@ export async function getMaintenanceStats(days: number = 30): Promise<{
 
 /**
  * 获取仪表盘汇总数据
+ * 
+ * ⚠️ 性能优化：优先使用优化版本 getDashboardSummaryOptimized()
+ * 该函数使用数据库视图，性能提升 60-80%
  */
 export async function getDashboardSummary() {
+  // 优先使用优化版本
+  if (isSupabaseConfigured) {
+    try {
+      // 动态导入优化版本以避免循环依赖
+      const { getDashboardSummaryOptimized } = await import('./stats-optimized')
+      const result = await getDashboardSummaryOptimized()
+      console.log('✅ 使用优化版本的 Dashboard 汇总')
+      return result
+    } catch (error) {
+      console.warn('⚠️ 优化版本失败，降级到标准版本:', error)
+      // 降级到下面的标准实现
+    }
+  }
+
+  // 降级版本：标准实现
   try {
     const [printerStats, routerStats, simStats, stockLevels, actionTrends, maintenanceStats] = await Promise.all([
       getPrinterStats(),

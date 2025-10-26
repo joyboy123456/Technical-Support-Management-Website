@@ -18,6 +18,9 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 数据5分钟内视为新鲜，不会自动重新请求
+      cacheTime: 10 * 60 * 1000, // 缓存保留10分钟
+      refetchInterval: false, // 禁用自动轮询，减少不必要的请求
     },
   },
 });
