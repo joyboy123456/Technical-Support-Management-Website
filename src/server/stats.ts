@@ -1,9 +1,8 @@
 // src/server/stats.ts
-// 统计数据服务
+// 统计数据服务（Supabase-only 核心路径）
 
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { getDevices } from '../data/devices'
-import type { Device } from '../data/devices'
+import { normalizeStatus, type CanonicalStatus } from './status'
 
 export interface AssetStats {
   total: number
@@ -44,52 +43,89 @@ export interface ActionTrendData {
   count: number
 }
 
+export interface StatsMeta {
+  source: 'server'
+  generatedAt: string
+}
+
+function emptyOverview(): AssetStats {
+  return {
+    total: 0,
+    available: 0,
+    inUse: 0,
+    maintenance: 0,
+    borrowed: 0
+  }
+}
+
+function bump(overview: AssetStats, status: CanonicalStatus) {
+  switch (status) {
+    case 'AVAILABLE':
+      overview.available++
+      break
+    case 'IN_USE':
+      overview.inUse++
+      break
+    case 'MAINTENANCE':
+      overview.maintenance++
+      break
+    case 'BORROWED':
+      overview.borrowed++
+      break
+    case 'OFFLINE':
+      overview['OFFLINE'] = (overview['OFFLINE'] || 0) + 1
+      break
+    default:
+      overview['OTHER'] = (overview['OTHER'] || 0) + 1
+  }
+}
+
 /**
- * 获取打印机统计数据
+ * 获取打印机统计数据（仅 Supabase）
  */
 export async function getPrinterStats(): Promise<{
   overview: AssetStats
   byLocation: LocationStats[]
   byBrandModel: BrandModelStats[]
-}> {
-  // 优先从 Supabase 获取真实数据
-  if (isSupabaseConfigured) {
-    try {
-      const supabaseStats = await fetchPrinterStatsFromSupabase()
-      // 无论有没有数据，都返回 Supabase 的结果（包括空数据）
-      console.log(`📊 从 Supabase 获取到 ${supabaseStats.overview.total} 台打印机数据`)
-      return supabaseStats
-    } catch (error) {
-      console.error('从 Supabase 获取打印机统计失败，使用本地数据:', error)
+} & StatsMeta> {
+  const generatedAt = new Date().toISOString()
+
+  if (!isSupabaseConfigured) {
+    console.error('[PrinterStats] Supabase not configured. 请配置 Supabase 环境变量。')
+    return {
+      overview: emptyOverview(),
+      byLocation: [],
+      byBrandModel: [],
+      source: 'server',
+      generatedAt
     }
   }
-  
-  // 降级使用本地设备数据（仅用于演示）
-  console.warn('⚠️ 使用本地模拟数据，请添加真实打印机到数据库')
-  return buildPrinterStatsFromDevices()
+
+  const data = await fetchPrinterStatsFromSupabase()
+  return { ...data, source: 'server', generatedAt }
 }
 
 /**
- * 获取路由器统计数据
+ * 获取路由器统计数据（仅 Supabase）
  */
 export async function getRouterStats(): Promise<{
   overview: AssetStats
   byLocation: LocationStats[]
-}> {
-  const fallbackStats = await buildRouterStatsFromDevices()
+} & StatsMeta> {
+  const generatedAt = new Date().toISOString()
 
-  if (fallbackStats.overview.total > 0) {
-    return fallbackStats
-  }
-
-  if (isSupabaseConfigured) {
-    const supabaseStats = await fetchRouterStatsFromSupabase()
-    if (supabaseStats.overview.total > 0 || supabaseStats.byLocation.length > 0) {
-      return supabaseStats
+  if (!isSupabaseConfigured) {
+    console.error('[RouterStats] Supabase not configured. 请配置 Supabase 环境变量。')
+    return {
+      overview: emptyOverview(),
+      byLocation: [],
+      source: 'server',
+      generatedAt
     }
   }
 
-  return fallbackStats
+  const data = await fetchRouterStatsFromSupabase()
+  return { ...data, source: 'server', generatedAt }
 }
 
 /**
@@ -100,20 +136,17 @@ export async function getSimStats(): Promise<{
   byCarrier: { carrier: string; count: number; status: string }[]
 }> {
   try {
-    // 使用视图获取统计
     const { data, error } = await supabase
       .from('v_sim_counts')
       .select('*')
 
     if (error) throw error
 
-    // 按状态汇总
     const overview: { [status: string]: number } = {}
     data?.forEach(item => {
       overview[item.status] = (overview[item.status] || 0) + item.count
     })
 
-    // 按运营商和状态分组
     const byCarrier = data?.map(item => ({
       carrier: item.carrier,
       count: item.count,
@@ -182,7 +215,6 @@ export async function getActionTrends(days: number = 30): Promise<ActionTrendDat
 
     if (error) throw error
 
-    // 按日期和操作类型分组统计
     const groupedData = new Map<string, Map<string, number>>()
 
     data?.forEach(action => {
@@ -197,7 +229,6 @@ export async function getActionTrends(days: number = 30): Promise<ActionTrendDat
       dayData.set(actionType, (dayData.get(actionType) || 0) + 1)
     })
 
-    // 转换为数组格式
     const result: ActionTrendData[] = []
     groupedData.forEach((dayData, date) => {
       dayData.forEach((count, actionType) => {
@@ -245,7 +276,6 @@ export async function getMaintenanceStats(days: number = 30): Promise<{
       happenedAt: record.happened_at
     })) || []
 
-    // 分析标题中的关键词来分类问题类型
     const issueTypeCounts = new Map<string, number>()
     data?.forEach(record => {
       const title = record.title.toLowerCase()
@@ -288,37 +318,36 @@ export async function getMaintenanceStats(days: number = 30): Promise<{
 
 /**
  * 获取仪表盘汇总数据
- * 
+ *
  * ⚠️ 性能优化：优先使用优化版本 getDashboardSummaryOptimized()
- * 该函数使用数据库视图，性能提升 60-80%
  */
 export async function getDashboardSummary() {
-  // 优先使用优化版本
+  const generatedAt = new Date().toISOString()
+
   if (isSupabaseConfigured) {
     try {
-      // 动态导入优化版本以避免循环依赖
       const { getDashboardSummaryOptimized } = await import('./stats-optimized')
       const result = await getDashboardSummaryOptimized()
-      console.log('✅ 使用优化版本的 Dashboard 汇总')
-      return result
+      return {
+        ...result,
+        source: 'server' as const,
+        generatedAt
+      }
     } catch (error) {
       console.warn('⚠️ 优化版本失败，降级到标准版本:', error)
-      // 降级到下面的标准实现
     }
   }
 
-  // 降级版本：标准实现
   try {
     const [printerStats, routerStats, simStats, stockLevels, actionTrends, maintenanceStats] = await Promise.all([
       getPrinterStats(),
       getRouterStats(),
       getSimStats(),
       getStockLevels(),
-      getActionTrends(7), // 最近7天的趋势
+      getActionTrends(7),
       getMaintenanceStats(30)
     ])
 
-    // 计算一些关键指标
     const lowStockItems = stockLevels.filter(item => item.stockStatus === '低库存').length
     const totalAssets = printerStats.overview.total + routerStats.overview.total
     const availableAssets = printerStats.overview.available + routerStats.overview.available
@@ -336,10 +365,12 @@ export async function getDashboardSummary() {
       sims: simStats,
       inventory: {
         lowStockItems,
-        stockLevels: stockLevels.slice(0, 10) // 前10项
+        stockLevels: stockLevels.slice(0, 10)
       },
       trends: actionTrends,
-      maintenance: maintenanceStats
+      maintenance: maintenanceStats,
+      source: 'server' as const,
+      generatedAt
     }
 
   } catch (error) {
@@ -348,164 +379,84 @@ export async function getDashboardSummary() {
   }
 }
 
-/**
- * 使用设备数据生成打印机统计（适用于本地/降级模式）
- */
-async function buildPrinterStatsFromDevices(): Promise<{
+/** ---------- Supabase：打印机 ---------- */
+async function fetchPrinterStatsFromSupabase(): Promise<{
   overview: AssetStats
   byLocation: LocationStats[]
   byBrandModel: BrandModelStats[]
 }> {
-  const devices = await getDevices()
-  const printerDevices = devices.filter(device => !!device.printerModel && !isRouterDevice(device))
-
-  const overview: AssetStats = {
-    total: printerDevices.length,
-    available: 0,
-    inUse: 0,
-    maintenance: 0,
-    borrowed: 0
-  }
-
-  const locationCounts = new Map<string, number>()
-  const locationModels = new Map<string, Map<string, { brand: string; model: string; count: number }>>()
+  const overview = emptyOverview()
+  const locationCounts = new Map<string, { name: string; count: number }>()
   const brandModelCounts = new Map<string, { brand: string; model: string; count: number }>()
 
-  printerDevices.forEach(device => {
-    switch (device.status) {
-      case '运行中':
-      case '使用中':
-        overview.inUse++
-        break
-      case '维护':
-      case '维修中':
-        overview.maintenance++
-        break
-      case '离线':
-      case '可用':
-        overview.available++
-        break
-      default:
-        overview[device.status] = (overview[device.status] || 0) + 1
-    }
+  try {
+    const { data: rows, error } = await supabase
+      .from('assets')
+      .select(`
+        status,
+        asset_type,
+        location_id,
+        locations!inner(name),
+        brand,
+        model
+      `)
+      .eq('asset_type', '打印机')
 
-    const locationKey = device.location || '未指定位置'
-    locationCounts.set(locationKey, (locationCounts.get(locationKey) ?? 0) + 1)
+    if (error) throw error
 
-    const brand = device.printerModel || '未知品牌'
-    const model = device.model || '未知型号'
-    const brandModelKey = `${brand}|${model}`
-    const existingBrandModel = brandModelCounts.get(brandModelKey)
-    if (existingBrandModel) {
-      existingBrandModel.count++
-    } else {
-      brandModelCounts.set(brandModelKey, { brand, model, count: 1 })
-    }
+    rows?.forEach((item: any) => {
+      const status = normalizeStatus(item.status)
+      overview.total++
+      bump(overview, status)
 
-    // 记录每个位置的型号信息
-    if (!locationModels.has(locationKey)) {
-      locationModels.set(locationKey, new Map())
-    }
-    const locationModelMap = locationModels.get(locationKey)!
-    const existing = locationModelMap.get(brandModelKey)
-    if (existing) {
-      existing.count++
-    } else {
-      locationModelMap.set(brandModelKey, { brand, model, count: 1 })
-    }
-  })
+      const locationId = String(item.location_id ?? item.locations?.name ?? 'unknown')
+      const locationName = item.locations?.name ?? '未指定位置'
+      const locationEntry = locationCounts.get(locationId) ?? { name: locationName, count: 0 }
+      locationEntry.count += 1
+      locationCounts.set(locationId, locationEntry)
 
-  const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
-    locationId: locationName,
-    locationName,
-    count,
-    models: Array.from(locationModels.get(locationName)?.values() || []).sort((a, b) => b.count - a.count)
-  }))
+      const brand = item.brand || '未知品牌'
+      const model = item.model || '未知型号'
+      const key = `${brand}|${model}`
+      const existing = brandModelCounts.get(key)
+      if (existing) {
+        existing.count += 1
+      } else {
+        brandModelCounts.set(key, { brand, model, count: 1 })
+      }
+    })
 
-  const byBrandModel: BrandModelStats[] = Array.from(brandModelCounts.values())
-    .sort((a, b) => b.count - a.count)
+    const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationId, info]) => ({
+      locationId,
+      locationName: info.name,
+      count: info.count
+    }))
 
-  return {
-    overview,
-    byLocation,
-    byBrandModel
+    const byBrandModel: BrandModelStats[] = Array.from(brandModelCounts.values()).sort((a, b) => b.count - a.count)
+
+    console.log(`📊 从 Supabase 获取到 ${overview.total} 台打印机数据`)
+    return { overview, byLocation, byBrandModel }
+
+  } catch (error) {
+    console.error('获取打印机统计错误:', error)
+    return { overview, byLocation: [], byBrandModel: [] }
   }
 }
 
-/**
- * 使用设备数据生成路由器统计（适用于本地/降级模式）
- */
-async function buildRouterStatsFromDevices(): Promise<{
-  overview: AssetStats
-  byLocation: LocationStats[]
-}> {
-  const devices = await getDevices()
-  const routerDevices = devices.filter(device => isRouterDevice(device))
-
-  const overview: AssetStats = {
-    total: routerDevices.length,
-    available: 0,
-    inUse: 0,
-    maintenance: 0,
-    borrowed: 0
-  }
-
-  const locationCounts = new Map<string, number>()
-
-  routerDevices.forEach(device => {
-    switch (device.status) {
-      case '运行中':
-      case '使用中':
-        overview.inUse++
-        break
-      case '维护':
-      case '维修中':
-        overview.maintenance++
-        break
-      case '离线':
-      case '可用':
-        overview.available++
-        break
-      default:
-        overview[device.status] = (overview[device.status] || 0) + 1
-    }
-
-    const locationKey = device.location || '未指定位置'
-    locationCounts.set(locationKey, (locationCounts.get(locationKey) ?? 0) + 1)
-  })
-
-  const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
-    locationId: locationName,
-    locationName,
-    count
-  }))
-
-  return {
-    overview,
-    byLocation
-  }
-}
-
-/**
- * 从 Supabase 获取路由器统计（用于无本地数据时）
- */
+/** ---------- Supabase：路由器 ---------- */
 async function fetchRouterStatsFromSupabase(): Promise<{
   overview: AssetStats
   byLocation: LocationStats[]
 }> {
-  const overview: AssetStats = {
-    total: 0,
-    available: 0,
-    inUse: 0,
-    maintenance: 0,
-    borrowed: 0
-  }
+  const overview = emptyOverview()
+  const locationCounts = new Map<string, { name: string; count: number }>()
 
   try {
     const { data, error } = await supabase
       .from('assets')
       .select(`
         status,
+        asset_type,
         location_id,
         locations!inner(name)
       `)
@@ -513,156 +464,29 @@ async function fetchRouterStatsFromSupabase(): Promise<{
 
     if (error) throw error
 
-    const locationCounts = new Map<string, number>()
-
-    data?.forEach(item => {
+    data?.forEach((item: any) => {
+      const status = normalizeStatus(item.status)
       overview.total++
-      switch (item.status) {
-        case '运行中':
-        case '使用中':
-          overview.inUse++
-          break
-        case '维护':
-        case '维修中':
-          overview.maintenance++
-          break
-        case '离线':
-        case '可用':
-          overview.available++
-          break
-        case '借出':
-          overview.borrowed++
-          break
-        default:
-          overview[item.status] = (overview[item.status] || 0) + 1
-      }
+      bump(overview, status)
 
+      const locationId = String(item.location_id ?? item.locations?.name ?? 'unknown')
       const locationName = item.locations?.name ?? '未指定位置'
-      locationCounts.set(locationName, (locationCounts.get(locationName) ?? 0) + 1)
+      const locationEntry = locationCounts.get(locationId) ?? { name: locationName, count: 0 }
+      locationEntry.count += 1
+      locationCounts.set(locationId, locationEntry)
     })
 
-    const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
-      locationId: locationName,
-      locationName,
-      count
+    const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationId, info]) => ({
+      locationId,
+      locationName: info.name,
+      count: info.count
     }))
 
-    return {
-      overview,
-      byLocation
-    }
+    console.log(`📊 从 Supabase 获取到 ${overview.total} 台路由器数据`)
+    return { overview, byLocation }
+
   } catch (error) {
     console.error('获取路由器统计错误:', error)
-    return {
-      overview,
-      byLocation: []
-    }
+    return { overview, byLocation: [] }
   }
-}
-
-/**
- * 从 Supabase 获取打印机统计（用于获取真实数据）
- */
-async function fetchPrinterStatsFromSupabase(): Promise<{
-  overview: AssetStats
-  byLocation: LocationStats[]
-  byBrandModel: BrandModelStats[]
-}> {
-  const overview: AssetStats = {
-    total: 0,
-    available: 0,
-    inUse: 0,
-    maintenance: 0,
-    borrowed: 0
-  }
-
-  // 从 printer_instances 表查询打印机实例数据
-  const { data, error } = await supabase
-    .from('printer_instances')
-    .select('id, printer_model, status, location')
-
-  if (error) throw error
-
-  const locationCounts = new Map<string, number>()
-  const locationModels = new Map<string, Map<string, { brand: string; model: string; count: number }>>()
-  const brandModelCounts = new Map<string, { brand: string; model: string; count: number }>()
-
-  data?.forEach(item => {
-    overview.total++
-    
-    // printer_instances 的 status: 'in-house' | 'deployed' | 'idle'
-    switch (item.status) {
-      case 'in-house':
-        overview.available++
-        break
-      case 'deployed':
-        overview.inUse++
-        break
-      case 'idle':
-        overview.maintenance++
-        break
-      default:
-        overview[item.status] = (overview[item.status] || 0) + 1
-    }
-
-    const locationName = item.location || '未指定位置'
-    locationCounts.set(locationName, (locationCounts.get(locationName) ?? 0) + 1)
-
-    // printer_model 格式如: "EPSON-L8058", "DNP-自购", "西铁城CX-02", "HITI诚研P525L"
-    const printerModel = item.printer_model || '未知型号'
-    // 用连字符或空格分割，取第一个作为品牌
-    const parts = printerModel.split(/[-\s]/)
-    const brand = parts[0] || '未知品牌'
-    const model = parts.slice(1).join('-') || '未知型号'
-    const brandModelKey = `${brand}|${model}`
-    
-    const existingBrandModel = brandModelCounts.get(brandModelKey)
-    if (existingBrandModel) {
-      existingBrandModel.count++
-    } else {
-      brandModelCounts.set(brandModelKey, { brand, model, count: 1 })
-    }
-
-    // 记录每个位置的型号信息
-    if (!locationModels.has(locationName)) {
-      locationModels.set(locationName, new Map())
-    }
-    const locationModelMap = locationModels.get(locationName)!
-    const existing = locationModelMap.get(brandModelKey)
-    if (existing) {
-      existing.count++
-    } else {
-      locationModelMap.set(brandModelKey, { brand, model, count: 1 })
-    }
-  })
-
-  const byLocation: LocationStats[] = Array.from(locationCounts.entries()).map(([locationName, count]) => ({
-    locationId: locationName,
-    locationName,
-    count,
-    models: Array.from(locationModels.get(locationName)?.values() || []).sort((a, b) => b.count - a.count)
-  }))
-
-  const byBrandModel: BrandModelStats[] = Array.from(brandModelCounts.values())
-    .sort((a, b) => b.count - a.count)
-
-  return {
-    overview,
-    byLocation,
-    byBrandModel
-  }
-}
-
-/**
- * 判断设备是否为路由器
- */
-function isRouterDevice(device: Device): boolean {
-  const type = device.deviceType?.trim()
-  if (type && type === '路由器') {
-    return true
-  }
-
-  const keywords = ['router', '路由', 'wifi', 'wi-fi']
-  const target = `${device.name ?? ''} ${device.model ?? ''} ${device.printer?.model ?? ''}`.toLowerCase()
-  return keywords.some(keyword => target.includes(keyword))
 }
