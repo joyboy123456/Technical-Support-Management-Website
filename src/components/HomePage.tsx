@@ -289,7 +289,7 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
 
   return (
     <div
-      className={`container-constrained py-6 ${MOBILE_CLASSES.mobileContainer} ${MOBILE_CLASSES.mobilePadding}`}
+      className={`container-constrained py-4 sm:py-6 px-4 sm:px-6 ${MOBILE_CLASSES.mobilePadding}`}
       style={{ maxWidth: "var(--container-max-width)" }}
     >
       {/* 页面标题 - 移动端隐藏，桌面端显示 */}
@@ -465,7 +465,7 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
       {/* 设备展示区 */}
       {loading ? (
         // 骨架屏 - 移动端单列，桌面端网格
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
             <DeviceCardSkeleton key={i} />
           ))}
@@ -501,7 +501,7 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
         </div>
       ) : viewMode === "grid" || isMobile ? (
         // 网格视图 - 移动端强制单列，桌面端响应式网格
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           {filteredDevices.map((device, index) => (
             <div
               key={device.id}

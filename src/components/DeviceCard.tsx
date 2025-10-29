@@ -127,17 +127,16 @@ export function DeviceCard({
       )}
       {/* 头部 */}
       <div
+        className="p-4 sm:p-4"
         style={{
-          padding: 'var(--space-4)',
           borderBottom: '1px solid var(--border-subtle)'
         }}
       >
         <h3
+          className="text-lg sm:text-base mb-2"
           style={{
-            fontSize: 'var(--font-size-base)',
             fontWeight: 'var(--font-weight-semibold)',
-            color: 'var(--text-1)',
-            marginBottom: 'var(--space-2)'
+            color: 'var(--text-1)'
           }}
         >
           {device.name}
@@ -151,46 +150,33 @@ export function DeviceCard({
 
       {/* 信息区 */}
       <div
-        style={{
-          padding: 'var(--space-4)',
-          display: 'flex',
-          gap: 'var(--space-4)'
-        }}
+        className="p-4 sm:p-4 flex gap-4"
       >
         {/* 左侧信息 */}
         <div
+          className="flex-1 grid gap-3 text-base sm:text-sm"
           style={{
-            flex: 1,
-            display: 'grid',
-            gridTemplateColumns: 'auto 1fr',
-            gap: 'var(--space-3)',
-            fontSize: 'var(--font-size-sm)'
+            gridTemplateColumns: 'auto 1fr'
           }}
         >
-          <span style={{ color: 'var(--text-2)' }}>位置</span>
-          <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
+          <span className="text-muted-foreground">位置</span>
+          <span className="text-foreground font-medium">
             {device.location}
           </span>
 
-          <span style={{ color: 'var(--text-2)' }}>负责人</span>
-          <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
+          <span className="text-muted-foreground">负责人</span>
+          <span className="text-foreground font-medium">
             {device.owner}
           </span>
 
-          <span style={{ color: 'var(--text-2)' }}>型号</span>
-          <span style={{ color: 'var(--text-1)', fontWeight: 'var(--font-weight-medium)' }}>
+          <span className="text-muted-foreground">型号</span>
+          <span className="text-foreground font-medium">
             {device.model}
           </span>
 
-          <span style={{ color: 'var(--text-2)' }}>下次维护</span>
+          <span className="text-muted-foreground">下次维护</span>
           <span
-            style={{
-              color: 'var(--text-1)',
-              fontWeight: 'var(--font-weight-medium)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)'
-            }}
+            className="text-foreground font-medium flex items-center gap-2"
           >
             {device.nextMaintenance}
             {isMaintenanceDue && (
