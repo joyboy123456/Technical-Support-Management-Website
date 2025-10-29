@@ -1,16 +1,25 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Sidebar } from './components/Sidebar';
-import { HomePage } from './components/HomePage';
-import { DeviceDetail } from './components/DeviceDetail';
-import { KnowledgePage } from './components/KnowledgePages';
-import { InventoryManagement } from './components/InventoryManagement';
-import { Dashboard } from './pages/Dashboard';
-import { Audit } from './pages/Audit';
-import { OutboundManagement } from './pages/OutboundManagement';
-import { Toaster } from './components/ui/sonner';
-import { SupabaseGate } from './components/SupabaseGate';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useSearchParams,
+  useNavigate,
+} from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Sidebar } from "./components/Sidebar";
+import { MobileSidebar } from "./components/layout/MobileSidebar";
+import AppLayout from "./components/layout/AppLayout";
+import { HomePage } from "./components/HomePage";
+import { DeviceDetail } from "./components/DeviceDetail";
+import { KnowledgePage } from "./components/KnowledgePages";
+import { InventoryManagement } from "./components/InventoryManagement";
+import { Dashboard } from "./pages/Dashboard";
+import { Audit } from "./pages/Audit";
+import { OutboundManagement } from "./pages/OutboundManagement";
+import { Toaster } from "./components/ui/sonner";
+import SupabaseGate from "./components/SupabaseGate";
 
 // 创建 QueryClient 实例
 const queryClient = new QueryClient({
@@ -28,13 +37,13 @@ const queryClient = new QueryClient({
 // 主布局组件
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+    <AppLayout
+      desktopSidebar={<Sidebar />}
+      mobileSidebar={<MobileSidebar />}
+    >
+      {children}
       <Toaster />
-    </div>
+    </AppLayout>
   );
 }
 
@@ -42,19 +51,19 @@ function Layout({ children }: { children: React.ReactNode }) {
 function DeviceDetailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const deviceId = searchParams.get('id');
+  const deviceId = searchParams.get("id");
 
   if (!deviceId) {
     return <Navigate to="/" replace />;
   }
 
-  return <DeviceDetail deviceId={deviceId} onBack={() => navigate('/')} />;
+  return <DeviceDetail deviceId={deviceId} onBack={() => navigate("/")} />;
 }
 
 // 知识页面包装器
 function KnowledgePageWrapper() {
   const [searchParams] = useSearchParams();
-  const pageId = searchParams.get('id');
+  const pageId = searchParams.get("id");
 
   if (!pageId) {
     return <Navigate to="/" replace />;
