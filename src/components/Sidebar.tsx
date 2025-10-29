@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -18,35 +18,52 @@ import {
   Edit2,
   Check,
   X,
-  PackageMinus
-} from 'lucide-react';
-import { sidebarItems, getDevices, createDevice, updateDevice, Device } from '../data/devices';
-import { CreateDeviceDialog } from './CreateDeviceDialog';
+  PackageMinus,
+} from "lucide-react";
+import {
+  sidebarItems,
+  getDevices,
+  createDevice,
+  updateDevice,
+  Device,
+} from "../data/devices";
+import { CreateDeviceDialog } from "./CreateDeviceDialog";
 
 interface SidebarProps {
   currentPage?: string;
-  onPageChange?: (pageId: string, type: 'page' | 'device') => void;
+  onPageChange?: (pageId: string, type: "page" | "device") => void;
 }
 
 export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({
-    'device-list': true
+  const [expandedGroups, setExpandedGroups] = React.useState<
+    Record<string, boolean>
+  >({
+    "device-list": true,
   });
   const [devices, setDevices] = React.useState<any[]>([]);
-  const [editingDeviceId, setEditingDeviceId] = React.useState<string | null>(null);
-  const [editingName, setEditingName] = React.useState<string>('');
+  const [editingDeviceId, setEditingDeviceId] = React.useState<string | null>(
+    null,
+  );
+  const [editingName, setEditingName] = React.useState<string>("");
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
 
   // 扩展的导航项目（包含新功能）
   const extendedSidebarItems = [
-    { id: 'home', type: 'page', title: '首页', path: '/' },
-    { id: 'dashboard', type: 'page', title: '统计看板', path: '/dashboard' },
-    { id: 'inventory-management', type: 'page', title: '库存管理', path: '/inventory' },
-    { id: 'outbound', type: 'page', title: '出库管理', path: '/outbound' },
-    { id: 'audit', type: 'page', title: '审计日志', path: '/audit' },
-    ...sidebarItems.filter(item => !['home', 'inventory-management'].includes(item.id))
+    { id: "home", type: "page", title: "首页", path: "/" },
+    { id: "dashboard", type: "page", title: "统计看板", path: "/dashboard" },
+    {
+      id: "inventory-management",
+      type: "page",
+      title: "库存管理",
+      path: "/inventory",
+    },
+    { id: "outbound", type: "page", title: "出库管理", path: "/outbound" },
+    { id: "audit", type: "page", title: "审计日志", path: "/audit" },
+    ...sidebarItems.filter(
+      (item) => !["home", "inventory-management"].includes(item.id),
+    ),
   ];
 
   // 刷新设备列表
@@ -61,19 +78,23 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       const m = s.match(/(\d+)/);
       return m ? parseInt(m[1], 10) : null;
     };
-    const isEnglishName = (s: string): boolean => /[A-Za-z]/.test(s) && /^[\x00-\x7F]+$/.test(s);
+    const isEnglishName = (s: string): boolean =>
+      /[A-Za-z]/.test(s) && /^[\x00-\x7F]+$/.test(s);
     const getCreatedTs = (d: any): number => {
       if (d.createdAt) {
         const t = new Date(d.createdAt).getTime();
         if (!isNaN(t)) return t;
       }
-      if (typeof d.id === 'string') {
+      if (typeof d.id === "string") {
         const m = d.id.match(/^dev-(\d+)$/);
         if (m) return parseInt(m[1], 10);
       }
       return 0;
     };
-    const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+    const collator = new Intl.Collator("zh-CN", {
+      numeric: true,
+      sensitivity: "base",
+    });
 
     const sorted = [...data].sort((a: any, b: any) => {
       const numA = extractNumber(a.name);
@@ -81,15 +102,16 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       const engA = isEnglishName(a.name);
       const engB = isEnglishName(b.name);
 
-      const rank = (n: number | null, eng: boolean) => (n !== null ? 0 : (eng ? 1 : 2));
+      const rank = (n: number | null, eng: boolean) =>
+        n !== null ? 0 : eng ? 1 : 2;
       const ra = rank(numA, engA);
       const rb = rank(numB, engB);
 
       if (ra !== rb) return ra - rb;
-      if (ra === 0) return (numA! - numB!);              // 数字名：按数字升序
-      if (ra === 1) return (getCreatedTs(a) - getCreatedTs(b)); // 英文名：按创建时间升序
+      if (ra === 0) return numA! - numB!; // 数字名：按数字升序
+      if (ra === 1) return getCreatedTs(a) - getCreatedTs(b); // 英文名：按创建时间升序
 
-      return collator.compare(a.name, b.name);           // 其他名称：自然排序
+      return collator.compare(a.name, b.name); // 其他名称：自然排序
     });
 
     setDevices(sorted);
@@ -102,14 +124,17 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
 
   const handleCreateDialogClose = () => setCreateDialogOpen(false);
 
-  const handleCreateDeviceSubmit = React.useCallback(async (deviceInput: Omit<Device, 'id'>) => {
-    const newDevice = await createDevice(deviceInput);
-    if (newDevice) {
-      await refreshDevices();
-    } else {
-      throw new Error('创建设备失败');
-    }
-  }, [refreshDevices]);
+  const handleCreateDeviceSubmit = React.useCallback(
+    async (deviceInput: Omit<Device, "id">) => {
+      const newDevice = await createDevice(deviceInput);
+      if (newDevice) {
+        await refreshDevices();
+      } else {
+        throw new Error("创建设备失败");
+      }
+    },
+    [refreshDevices],
+  );
 
   // 开始编辑设备名称
   const startEditingDevice = (deviceId: string, currentName: string) => {
@@ -123,57 +148,56 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       await updateDevice(editingDeviceId, { name: editingName.trim() });
       await refreshDevices();
       setEditingDeviceId(null);
-      setEditingName('');
+      setEditingName("");
     }
   };
-
 
   // 取消编辑
   const cancelEditing = () => {
     setEditingDeviceId(null);
-    setEditingName('');
+    setEditingName("");
   };
 
   React.useEffect(() => {
     refreshDevices();
 
     // 监听窗口焦点事件来刷新设备列表
-    window.addEventListener('focus', refreshDevices);
-    return () => window.removeEventListener('focus', refreshDevices);
+    window.addEventListener("focus", refreshDevices);
+    return () => window.removeEventListener("focus", refreshDevices);
   }, [refreshDevices]);
 
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => ({
+    setExpandedGroups((prev) => ({
       ...prev,
-      [groupId]: !prev[groupId]
+      [groupId]: !prev[groupId],
     }));
   };
 
   const getIcon = (id: string) => {
     switch (id) {
-      case 'announcements':
+      case "announcements":
         return <Megaphone className="w-4 h-4" />;
-      case 'inventory-management':
+      case "inventory-management":
         return <Package className="w-4 h-4" />;
-      case 'outbound':
+      case "outbound":
         return <PackageMinus className="w-4 h-4" />;
-      case 'home':
+      case "home":
         return <Home className="w-4 h-4" />;
-      case 'dashboard':
+      case "dashboard":
         return <BarChart3 className="w-4 h-4" />;
-      case 'audit':
+      case "audit":
         return <FileSearch className="w-4 h-4" />;
-      case 'install':
+      case "install":
         return <Wrench className="w-4 h-4" />;
-      case 'software-guide':
+      case "software-guide":
         return <Settings className="w-4 h-4" />;
-      case 'device-guide':
+      case "device-guide":
         return <Settings className="w-4 h-4" />;
-      case 'printer-guide':
+      case "printer-guide":
         return <Printer className="w-4 h-4" />;
-      case 'troubleshooting':
+      case "troubleshooting":
         return <AlertTriangle className="w-4 h-4" />;
-      case 'faq':
+      case "faq":
         return <HelpCircle className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
@@ -207,11 +231,11 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       <div className="w-60 bg-[rgba(250,250,250,1)] border-r border-sidebar-border h-screen overflow-y-auto">
         <div className="p-6">
           <h2 className="text-sidebar-foreground mb-6">设备管理中心</h2>
-          
+
           <nav className="space-y-1">
             {extendedSidebarItems.map((item) => (
               <div key={item.id}>
-                {item.type === 'group' ? (
+                {item.type === "group" ? (
                   <div>
                     <button
                       onClick={() => toggleGroup(item.id)}
@@ -228,7 +252,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                       )}
                     </button>
 
-                    {expandedGroups[item.id] && item.id === 'device-list' && (
+                    {expandedGroups[item.id] && item.id === "device-list" && (
                       <div className="ml-6 mt-1 space-y-1">
                         <button
                           onClick={handleCreateDevice}
@@ -238,15 +262,15 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                           <span>新建设备</span>
                         </button>
                         {devices.map((device) => (
-                          <div
-                            key={device.id}
-                            className="relative"
-                          >
+                          <div key={device.id} className="relative">
                             <div
                               className={`group flex items-center gap-1 px-3 py-2 rounded-md transition-colors text-sm ${
-                                location.pathname === '/device' && new URLSearchParams(location.search).get('id') === device.id
-                                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                                location.pathname === "/device" &&
+                                new URLSearchParams(location.search).get(
+                                  "id",
+                                ) === device.id
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                               }`}
                             >
                               {editingDeviceId === device.id ? (
@@ -254,10 +278,12 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                                   <input
                                     type="text"
                                     value={editingName}
-                                    onChange={(e) => setEditingName(e.target.value)}
+                                    onChange={(e) =>
+                                      setEditingName(e.target.value)
+                                    }
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter') saveDeviceName();
-                                      if (e.key === 'Escape') cancelEditing();
+                                      if (e.key === "Enter") saveDeviceName();
+                                      if (e.key === "Escape") cancelEditing();
                                     }}
                                     className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
                                     autoFocus
@@ -286,7 +312,10 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      startEditingDevice(device.id, device.name);
+                                      startEditingDevice(
+                                        device.id,
+                                        device.name,
+                                      );
                                     }}
                                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-sidebar-accent rounded transition-opacity"
                                   >
@@ -305,8 +334,8 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                     onClick={() => handleNavigation(item)}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
                       isActive(item)
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                   >
                     {getIcon(item.id)}
