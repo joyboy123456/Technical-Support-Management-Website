@@ -17,9 +17,6 @@ RUN npm ci --only=production && npm cache clean --force
 # 复制服务器代码
 COPY server/ ./server/
 
-# 复制环境配置
-COPY .env* ./
-
 # 更改文件所有者
 RUN chown -R nodejs:nodejs /app
 USER nodejs

@@ -1,63 +1,58 @@
+# 环境配置文件（包含敏感信息）
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+
+# Git 相关
+.git
+.gitignore
+
 # 依赖目录
 node_modules
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # 构建输出
 dist
 build
 
-# 开发文件
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# IDE 文件
+# 开发工具
 .vscode
 .idea
-*.swp
-*.swo
 
-# 操作系统文件
-.DS_Store
-Thumbs.db
-
-# Git 文件
-.git
-.gitignore
-
-# 测试文件
+# 测试相关
 coverage
-.nyc_output
-
-# 日志文件
-logs
 *.log
 
 # 临时文件
-.tmp
-.temp
+*.tmp
+*.temp
 
-# Docker 文件（避免递归复制）
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Docker 相关
 Dockerfile*
-docker-compose*
+docker-compose*.yml
 
-# 文档文件
+# 文档和说明
+README.md
 *.md
-docs/
 
-# 脚本文件
+# 脚本文件（可能包含敏感信息）
 scripts/
-deploy.sh
 
-# Supabase 配置
-supabase/
+# 备份文件
+*.backup
+*.bak
 
-# 测试文件
-tests/
-playwright.config.ts
+# 证书文件
+*.pem
+*.key
+*.crt
 
-# 其他配置文件
-.cascade/
+# 其他敏感文件
+secrets/
+private/

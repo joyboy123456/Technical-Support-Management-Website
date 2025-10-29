@@ -12,12 +12,17 @@ COPY package*.json ./
 # 安装所有依赖（包括开发依赖，因为构建需要）
 RUN npm ci
 
-# 复制源代码
-COPY . .
+# 复制构建所需的文件
+COPY src/ ./src/
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
 # 设置环境变量
 ENV NODE_ENV=production
 ENV VITE_API_BASE_URL=/api
+ENV VITE_USE_POSTGRES=true
 
 # 构建应用
 RUN npm run build

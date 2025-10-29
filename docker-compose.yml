@@ -3,21 +3,21 @@ version: '3.8'
 services:
   # PostgreSQL API 服务
   postgres-api:
-    image: swr.cn-east-3.myhuaweicloud.com/btc8_public/tech-support-api:v2
+    image: swr.cn-east-3.myhuaweicloud.com/btc8_public/tech-support-api:v3
     container_name: tech-support-api
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
-      - DB_HOST=postgres-db
-      - DB_PORT=5432
-      - DB_USER=${POSTGRES_USER:-myuser}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-LDb3rEMrgxqQe2t7yYPF}
-      - DB_NAME=${POSTGRES_DB:-mydb}
-      - PORT=3001
+      - NODE_ENV=${NODE_ENV}
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=${POSTGRES_PORT}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - PORT=${API_PORT}
+      - POSTGRES_API_PORT=${API_PORT}
+      - DATABASE_URL=${DATABASE_URL}
     ports:
       - "3001:3001"
-    external_links:
-      - postgres-db
     networks:
       - tech-support-network
     healthcheck:
@@ -28,7 +28,7 @@ services:
 
   # 前端应用
   frontend:
-    image: swr.cn-east-3.myhuaweicloud.com/btc8_public/tech-support-ui:v3
+    image: swr.cn-east-3.myhuaweicloud.com/btc8_public/tech-support-ui:v3.2
     container_name: tech-support-ui
     restart: unless-stopped
     ports:
@@ -38,14 +38,8 @@ services:
         condition: service_healthy
     networks:
       - tech-support-network
-    command: >
-      sh -c "
-      sed -i 's|http://192.168.80.23:3001|/api|g' /usr/share/nginx/html/assets/*.js &&
-      sed -i 's|http://localhost:3001|/api|g' /usr/share/nginx/html/assets/*.js &&
-      nginx -g 'daemon off;'
-      "
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
