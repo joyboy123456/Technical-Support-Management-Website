@@ -38,18 +38,8 @@ const queryClient = new QueryClient({
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <AppLayout
-      sidebar={
-        <>
-          {/* Desktop Sidebar */}
-          <div className="hidden md:block">
-            <Sidebar />
-          </div>
-          {/* Mobile Sidebar */}
-          <div className="md:hidden">
-            <MobileSidebar />
-          </div>
-        </>
-      }
+      desktopSidebar={<Sidebar />}
+      mobileSidebar={<MobileSidebar />}
     >
       {children}
       <Toaster />

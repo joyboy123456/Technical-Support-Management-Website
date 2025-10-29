@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 interface AppLayoutProps {
-  sidebar: React.ReactNode;
+  desktopSidebar: React.ReactNode;
+  mobileSidebar: React.ReactNode;
   children: React.ReactNode;
 }
 
-export default function AppLayout({ sidebar, children }: AppLayoutProps) {
+export default function AppLayout({
+  desktopSidebar,
+  mobileSidebar,
+  children,
+}: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  const mobileSidebarNode = React.isValidElement(mobileSidebar)
+    ? React.cloneElement(mobileSidebar, {
+        onNavigate: () => setSidebarOpen(false),
+      })
+    : mobileSidebar;
 
   // Close sidebar when clicking outside or pressing Escape
   useEffect(() => {
@@ -34,7 +47,7 @@ export default function AppLayout({ sidebar, children }: AppLayoutProps) {
   // Close sidebar on route change (mobile)
   useEffect(() => {
     setSidebarOpen(false);
-  }, [children]);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,7 +71,7 @@ export default function AppLayout({ sidebar, children }: AppLayoutProps) {
         {/* Desktop Sidebar */}
         <aside className="hidden md:block md:w-60 md:flex-shrink-0 md:border-r md:border-border">
           <div className="sticky top-0 h-screen overflow-y-auto">
-            {sidebar}
+            {desktopSidebar}
           </div>
         </aside>
 
@@ -103,7 +116,7 @@ export default function AppLayout({ sidebar, children }: AppLayoutProps) {
 
             {/* Drawer Content */}
             <div className="h-[calc(100%-3.5rem)] overflow-y-auto">
-              {sidebar}
+              {mobileSidebarNode}
             </div>
           </div>
         </div>

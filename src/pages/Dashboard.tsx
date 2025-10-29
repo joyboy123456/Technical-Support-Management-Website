@@ -24,7 +24,7 @@ import {
 } from 'recharts'
 import {
   Printer,
-  Router,
+  Router as RouterIcon,
   Smartphone,
   Package,
   AlertTriangle,
@@ -211,9 +211,7 @@ export function Dashboard() {
         </TabsList>
 
         <TabsContent value="assets" className="space-y-6">
-          {/* 图表区域 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            {/* 打印机状态分布 */}
             <Card>
               <CardHeader className="pb-3 md:pb-6">
                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
@@ -246,11 +244,10 @@ export function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* 路由器状态分布 */}
             <Card>
               <CardHeader className="pb-3 md:pb-6">
                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                  <Wifi className="w-4 h-4 md:w-5 md:h-5" />
+                  <RouterIcon className="w-4 h-4 md:w-5 md:h-5" />
                   路由器状态分布
                 </CardTitle>
               </CardHeader>
@@ -280,7 +277,7 @@ export function Dashboard() {
             </Card>
           </div>
 
-            {/* 打印机品牌分布 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>打印机品牌分布</CardTitle>
@@ -298,7 +295,6 @@ export function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* SIM卡状态 */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -318,7 +314,6 @@ export function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* 设备位置分布 */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
