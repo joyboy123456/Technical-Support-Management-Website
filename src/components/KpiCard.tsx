@@ -99,7 +99,7 @@ export function KpiCard({
       {/* 数值区域 */}
       <div className="flex items-baseline gap-2">
         <div
-          className="tabular-nums text-3xl sm:text-4xl"
+          className="tabular-nums text-4xl lg:text-3xl"
           style={{
             fontWeight: 'var(--font-weight-semibold)',
             lineHeight: 'var(--line-height-tight)',
@@ -125,7 +125,7 @@ export function KpiCard({
 
       {/* 标签 */}
       <div
-        className="mt-2 text-sm sm:text-xs"
+        className="mt-2 text-sm lg:text-xs"
         style={{
           color: 'var(--text-2)',
           fontWeight: 'var(--font-weight-medium)'
@@ -167,7 +167,7 @@ interface KpiCardGroupProps {
 export function KpiCardGroup({ children, className = '' }: KpiCardGroupProps) {
   return (
     <div
-      className={`grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 ${className}`}
+      className={`grid grid-cols-2 sm:grid-cols-4 gap-4 lg:gap-4 ${className}`}
       role="group"
       aria-label="设备统计概览"
     >

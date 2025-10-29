@@ -133,7 +133,7 @@ export function DeviceCard({
         }}
       >
         <h3
-          className="text-lg sm:text-base mb-2"
+          className="text-lg lg:text-base mb-2"
           style={{
             fontWeight: 'var(--font-weight-semibold)',
             color: 'var(--text-1)'
@@ -154,7 +154,7 @@ export function DeviceCard({
       >
         {/* 左侧信息 */}
         <div
-          className="flex-1 grid gap-3 text-base sm:text-sm"
+          className="flex-1 grid gap-3 text-base lg:text-sm"
           style={{
             gridTemplateColumns: 'auto 1fr'
           }}
