@@ -316,34 +316,35 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
       <div className="mb-4 lg:mb-6">
         {isMobile ? (
           <div>
-          {/* 移动端简化工具条 */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+            {/* 移动端简化工具条 */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="flex items-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {refreshing ? "刷新中..." : "刷新"}
+                </button>
+              </div>
               <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                onClick={handleCreateDevice}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90"
               >
-                {refreshing ? "刷新中..." : "刷新"}
+                + 新建
               </button>
             </div>
-            <button
-              onClick={handleCreateDevice}
-              className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90"
-            >
-              + 新建
-            </button>
           </div>
         ) : (
           <div>
-          {/* 桌面端完整工具条 */}
-          <TopToolbar
-            onRefresh={handleRefresh}
-            onImport={() => toast.info("导入功能开发中")}
-            onExport={() => toast.info("导出功能开发中")}
-            onCreateDevice={handleCreateDevice}
-            isRefreshing={refreshing}
-          />
+            {/* 桌面端完整工具条 */}
+            <TopToolbar
+              onRefresh={handleRefresh}
+              onImport={() => toast.info("导入功能开发中")}
+              onExport={() => toast.info("导出功能开发中")}
+              onCreateDevice={handleCreateDevice}
+              isRefreshing={refreshing}
+            />
           </div>
         )}
       </div>
@@ -352,38 +353,6 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
       <div className="mb-4 lg:mb-6">
         {isMobile ? (
           <div className="grid grid-cols-2 gap-3">
-          <KpiCard
-            label="设备总数"
-            value={stats.total}
-            filterKey="all"
-            onClick={handleKpiClick}
-            isActive={filters.status === "all"}
-          />
-          <KpiCard
-            label="运行中"
-            value={stats.running}
-            filterKey="运行中"
-            onClick={handleKpiClick}
-            isActive={filters.status === "运行中"}
-          />
-          <KpiCard
-            label="维护中"
-            value={stats.maintenance}
-            filterKey="维护"
-            onClick={handleKpiClick}
-            isActive={filters.status === "维护"}
-          />
-          <KpiCard
-            label="离线"
-            value={stats.offline}
-            filterKey="离线"
-            onClick={handleKpiClick}
-            isActive={filters.status === "离线"}
-          />
-          </div>
-        ) : (
-          <div>
-          <KpiCardGroup>
             <KpiCard
               label="设备总数"
               value={stats.total}
@@ -412,45 +381,83 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
               onClick={handleKpiClick}
               isActive={filters.status === "离线"}
             />
-          </KpiCardGroup>
-        </div>
+          </div>
+        ) : (
+          <div>
+            <KpiCardGroup>
+              <KpiCard
+                label="设备总数"
+                value={stats.total}
+                filterKey="all"
+                onClick={handleKpiClick}
+                isActive={filters.status === "all"}
+              />
+              <KpiCard
+                label="运行中"
+                value={stats.running}
+                filterKey="运行中"
+                onClick={handleKpiClick}
+                isActive={filters.status === "运行中"}
+              />
+              <KpiCard
+                label="维护中"
+                value={stats.maintenance}
+                filterKey="维护"
+                onClick={handleKpiClick}
+                isActive={filters.status === "维护"}
+              />
+              <KpiCard
+                label="离线"
+                value={stats.offline}
+                filterKey="离线"
+                onClick={handleKpiClick}
+                isActive={filters.status === "离线"}
+              />
+            </KpiCardGroup>
+          </div>
+        )}
       </div>
 
       {/* 筛选区 - 移动端简化 */}
       <div className="mb-4 lg:mb-6">
         {isMobile ? (
           <div>
-          {/* 移动端简化筛选 */}
-          <div className="flex items-center gap-2 mb-4">
-            <input
-              type="text"
-              placeholder="搜索设备..."
-              value={filters.search}
-              onChange={(e) => handleFiltersChange({ search: e.target.value })}
-              className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
-            />
-            <select
-              value={filters.status}
-              onChange={(e) => handleFiltersChange({ status: e.target.value })}
-              className="px-3 py-2 text-sm border border-border rounded-lg bg-background"
-            >
-              <option value="all">全部</option>
-              <option value="运行中">运行中</option>
-              <option value="维护">维护</option>
-              <option value="离线">离线</option>
-            </select>
+            {/* 移动端简化筛选 */}
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="搜索设备..."
+                value={filters.search}
+                onChange={(e) =>
+                  handleFiltersChange({ search: e.target.value })
+                }
+                className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              />
+              <select
+                value={filters.status}
+                onChange={(e) =>
+                  handleFiltersChange({ status: e.target.value })
+                }
+                className="px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              >
+                <option value="all">全部</option>
+                <option value="运行中">运行中</option>
+                <option value="维护">维护</option>
+                <option value="离线">离线</option>
+              </select>
+            </div>
           </div>
         ) : (
           <div>
-          {/* 桌面端完整筛选 */}
-          <Filters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onClearFilters={handleClearFilters}
-            locations={locations}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
+            {/* 桌面端完整筛选 */}
+            <Filters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={handleClearFilters}
+              locations={locations}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
           </div>
         )}
       </div>
