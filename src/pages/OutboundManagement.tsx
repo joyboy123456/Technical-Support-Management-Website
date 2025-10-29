@@ -16,6 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
 import { toast } from "sonner";
 import {
   PackageMinus,
@@ -24,6 +30,8 @@ import {
   AlertCircle,
   PackagePlus,
   Trash2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   getInventory,
@@ -74,7 +82,8 @@ export function OutboundManagement() {
   const [recordToDelete, setRecordToDelete] = useState<OutboundRecord | null>(
     null,
   );
-  const [selectedDeviceInstance, setSelectedDeviceInstance] = useState<string>("");
+  const [selectedDeviceInstance, setSelectedDeviceInstance] =
+    useState<string>("");
   const [printerInstances, setPrinterInstances] = useState<any[]>([]);
 
   const handleDeleteDialogChange = (open: boolean) => {
@@ -106,7 +115,7 @@ export function OutboundManagement() {
         const instances = await getAllPrinterInstances();
         setPrinterInstances(instances);
       } catch (error) {
-        console.error('加载打印机实例失败:', error);
+        console.error("加载打印机实例失败:", error);
       }
     };
     loadPrinterInstances();
@@ -144,9 +153,9 @@ export function OutboundManagement() {
   const getAvailableDevices = (): PrinterInstance[] => {
     if (!printerModel) return [];
     return printerInstances.filter(
-      (instance) => 
-        instance.printerModel === printerModel && 
-        instance.status === 'in-house'
+      (instance) =>
+        instance.printerModel === printerModel &&
+        instance.status === "in-house",
     );
   };
 
@@ -170,9 +179,13 @@ export function OutboundManagement() {
     }
 
     // 如果是DNP型号且未选择设备，显示警告（但允许继续）
-    if (printerModel && printerModel.startsWith('DNP-') && !selectedDeviceInstance) {
-      toast.warning('提醒：DNP 打印机建议选择具体设备，确保相纸与打印机匹配', {
-        duration: 3000
+    if (
+      printerModel &&
+      printerModel.startsWith("DNP-") &&
+      !selectedDeviceInstance
+    ) {
+      toast.warning("提醒：DNP 打印机建议选择具体设备，确保相纸与打印机匹配", {
+        duration: 3000,
       });
     }
 
@@ -187,9 +200,9 @@ export function OutboundManagement() {
     });
 
     if (result.success) {
-      const syncMsg = selectedDeviceInstance 
-        ? `，已自动更新 ${selectedDeviceInstance} 状态为外放` 
-        : '';
+      const syncMsg = selectedDeviceInstance
+        ? `，已自动更新 ${selectedDeviceInstance} 状态为外放`
+        : "";
       toast.success(`出库记录已创建${syncMsg}`);
       setDeviceId("");
       setDestination("");
@@ -281,19 +294,21 @@ export function OutboundManagement() {
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-start mb-8">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold mb-2">出库管理</h1>
-          <p className="text-muted-foreground">统一记录设备和配件出库</p>
+          <h1 className="text-2xl md:text-3xl font-bold">出库管理</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">
+            管理设备和耗材的出库记录
+          </p>
         </div>
         <Button
           variant="outline"
           onClick={() => setShowHistory(!showHistory)}
-          className="flex items-center gap-2"
+          className="flex items-center justify-center gap-2 w-full md:w-auto min-h-[44px]"
         >
           <History className="w-4 h-4" />
-          {showHistory ? "返回出库" : "出库历史"}
+          {showHistory ? "隐藏历史" : "查看历史"}
         </Button>
       </div>
 
@@ -311,7 +326,10 @@ export function OutboundManagement() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">出库时间：</span>
-                  <span>{returningRecord && new Date(returningRecord.date).toLocaleString("zh-CN")}</span>
+                  <span>
+                    {returningRecord &&
+                      new Date(returningRecord.date).toLocaleString("zh-CN")}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">出库人员：</span>
@@ -340,247 +358,373 @@ export function OutboundManagement() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b">
-                      <th className="text-left p-3 text-sm font-semibold">物品名称</th>
-                      <th className="text-center p-3 text-sm font-semibold">出库数量</th>
-                      <th className="text-center p-3 text-sm font-semibold">归还数量</th>
-                      <th className="text-center p-3 text-sm font-semibold">丢失/消耗</th>
+                      <th className="text-left p-3 text-sm font-semibold">
+                        物品名称
+                      </th>
+                      <th className="text-center p-3 text-sm font-semibold">
+                        出库数量
+                      </th>
+                      <th className="text-center p-3 text-sm font-semibold">
+                        归还数量
+                      </th>
+                      <th className="text-center p-3 text-sm font-semibold">
+                        丢失/消耗
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {returningRecord?.items.printerModel && returningRecord?.items.paperType && (
-                      <tr className="border-b hover:bg-gray-50">
-                        <td className="p-3 text-sm">
-                          相纸 ({getPrinterDisplayName(returningRecord.items.printerModel)} - {returningRecord.items.paperType})
-                        </td>
-                        <td className="p-3 text-center text-sm font-medium">
-                          {returningRecord.items.paperQuantity || 0} 张
-                        </td>
-                        <td className="p-3">
-                          <Input
-                            type="number"
-                            min="0"
-                            max={returningRecord.items.paperQuantity}
-                            data-testid="return-paper-qty"
-                            value={returnedItems.paperQuantity || ""}
-                            onChange={(e) => handleReturnItemChange("paperQuantity", e.target.value)}
-                            className="text-center"
-                          />
-                        </td>
-                        <td className={`p-3 text-center text-sm font-medium ${
-                          (returningRecord.items.paperQuantity || 0) - (returnedItems.paperQuantity || 0) > 0
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }`}>
-                          {(returningRecord.items.paperQuantity || 0) - (returnedItems.paperQuantity || 0)} 张
-                        </td>
-                      </tr>
-                    )}
+                    {returningRecord?.items.printerModel &&
+                      returningRecord?.items.paperType && (
+                        <tr className="border-b hover:bg-gray-50">
+                          <td className="p-3 text-sm">
+                            相纸 (
+                            {getPrinterDisplayName(
+                              returningRecord.items.printerModel,
+                            )}{" "}
+                            - {returningRecord.items.paperType})
+                          </td>
+                          <td className="p-3 text-center text-sm font-medium">
+                            {returningRecord.items.paperQuantity || 0} 张
+                          </td>
+                          <td className="p-3">
+                            <Input
+                              type="number"
+                              min="0"
+                              max={returningRecord.items.paperQuantity}
+                              data-testid="return-paper-qty"
+                              value={returnedItems.paperQuantity || ""}
+                              onChange={(e) =>
+                                handleReturnItemChange(
+                                  "paperQuantity",
+                                  e.target.value,
+                                )
+                              }
+                              className="text-center"
+                            />
+                          </td>
+                          <td
+                            className={`p-3 text-center text-sm font-medium ${
+                              (returningRecord.items.paperQuantity || 0) -
+                                (returnedItems.paperQuantity || 0) >
+                              0
+                                ? "text-red-600"
+                                : "text-green-600"
+                            }`}
+                          >
+                            {(returningRecord.items.paperQuantity || 0) -
+                              (returnedItems.paperQuantity || 0)}{" "}
+                            张
+                          </td>
+                        </tr>
+                      )}
                     {returningRecord?.items.routers !== undefined && (
                       <tr className="border-b hover:bg-gray-50">
                         <td className="p-3 text-sm">路由器</td>
-                        <td className="p-3 text-center text-sm font-medium">{returningRecord.items.routers} 台</td>
+                        <td className="p-3 text-center text-sm font-medium">
+                          {returningRecord.items.routers} 台
+                        </td>
                         <td className="p-3">
                           <Input
                             type="number"
                             min="0"
                             max={returningRecord.items.routers}
                             value={returnedItems.routers || ""}
-                            onChange={(e) => handleReturnItemChange("routers", e.target.value)}
+                            onChange={(e) =>
+                              handleReturnItemChange("routers", e.target.value)
+                            }
                             className="text-center"
                           />
                         </td>
-                        <td className={`p-3 text-center text-sm font-medium ${
-                          (returningRecord.items.routers || 0) - (returnedItems.routers || 0) > 0
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }`}>
-                          {(returningRecord.items.routers || 0) - (returnedItems.routers || 0)} 台
+                        <td
+                          className={`p-3 text-center text-sm font-medium ${
+                            (returningRecord.items.routers || 0) -
+                              (returnedItems.routers || 0) >
+                            0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {(returningRecord.items.routers || 0) -
+                            (returnedItems.routers || 0)}{" "}
+                          台
                         </td>
                       </tr>
                     )}
                     {returningRecord?.items.powerStrips !== undefined && (
                       <tr className="border-b hover:bg-gray-50">
                         <td className="p-3 text-sm">插板</td>
-                        <td className="p-3 text-center text-sm font-medium">{returningRecord.items.powerStrips} 个</td>
+                        <td className="p-3 text-center text-sm font-medium">
+                          {returningRecord.items.powerStrips} 个
+                        </td>
                         <td className="p-3">
                           <Input
                             type="number"
                             min="0"
                             max={returningRecord.items.powerStrips}
                             value={returnedItems.powerStrips || ""}
-                            onChange={(e) => handleReturnItemChange("powerStrips", e.target.value)}
+                            onChange={(e) =>
+                              handleReturnItemChange(
+                                "powerStrips",
+                                e.target.value,
+                              )
+                            }
                             className="text-center"
                           />
                         </td>
-                        <td className={`p-3 text-center text-sm font-medium ${
-                          (returningRecord.items.powerStrips || 0) - (returnedItems.powerStrips || 0) > 0
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }`}>
-                          {(returningRecord.items.powerStrips || 0) - (returnedItems.powerStrips || 0)} 个
+                        <td
+                          className={`p-3 text-center text-sm font-medium ${
+                            (returningRecord.items.powerStrips || 0) -
+                              (returnedItems.powerStrips || 0) >
+                            0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {(returningRecord.items.powerStrips || 0) -
+                            (returnedItems.powerStrips || 0)}{" "}
+                          个
                         </td>
                       </tr>
                     )}
                     {returningRecord?.items.usbCables !== undefined && (
                       <tr className="border-b hover:bg-gray-50">
                         <td className="p-3 text-sm">USB线</td>
-                        <td className="p-3 text-center text-sm font-medium">{returningRecord.items.usbCables} 根</td>
+                        <td className="p-3 text-center text-sm font-medium">
+                          {returningRecord.items.usbCables} 根
+                        </td>
                         <td className="p-3">
                           <Input
                             type="number"
                             min="0"
                             max={returningRecord.items.usbCables}
                             value={returnedItems.usbCables || ""}
-                            onChange={(e) => handleReturnItemChange("usbCables", e.target.value)}
+                            onChange={(e) =>
+                              handleReturnItemChange(
+                                "usbCables",
+                                e.target.value,
+                              )
+                            }
                             className="text-center"
                           />
                         </td>
-                        <td className={`p-3 text-center text-sm font-medium ${
-                          (returningRecord.items.usbCables || 0) - (returnedItems.usbCables || 0) > 0
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }`}>
-                          {(returningRecord.items.usbCables || 0) - (returnedItems.usbCables || 0)} 根
+                        <td
+                          className={`p-3 text-center text-sm font-medium ${
+                            (returningRecord.items.usbCables || 0) -
+                              (returnedItems.usbCables || 0) >
+                            0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {(returningRecord.items.usbCables || 0) -
+                            (returnedItems.usbCables || 0)}{" "}
+                          根
                         </td>
                       </tr>
                     )}
                     {returningRecord?.items.networkCables !== undefined && (
                       <tr className="border-b hover:bg-gray-50">
                         <td className="p-3 text-sm">网线</td>
-                        <td className="p-3 text-center text-sm font-medium">{returningRecord.items.networkCables} 根</td>
+                        <td className="p-3 text-center text-sm font-medium">
+                          {returningRecord.items.networkCables} 根
+                        </td>
                         <td className="p-3">
                           <Input
                             type="number"
                             min="0"
                             max={returningRecord.items.networkCables}
                             value={returnedItems.networkCables || ""}
-                            onChange={(e) => handleReturnItemChange("networkCables", e.target.value)}
+                            onChange={(e) =>
+                              handleReturnItemChange(
+                                "networkCables",
+                                e.target.value,
+                              )
+                            }
                             className="text-center"
                           />
                         </td>
-                        <td className={`p-3 text-center text-sm font-medium ${
-                          (returningRecord.items.networkCables || 0) - (returnedItems.networkCables || 0) > 0
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }`}>
-                          {(returningRecord.items.networkCables || 0) - (returnedItems.networkCables || 0)} 根
+                        <td
+                          className={`p-3 text-center text-sm font-medium ${
+                            (returningRecord.items.networkCables || 0) -
+                              (returnedItems.networkCables || 0) >
+                            0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {(returningRecord.items.networkCables || 0) -
+                            (returnedItems.networkCables || 0)}{" "}
+                          根
                         </td>
                       </tr>
                     )}
                     {returningRecord?.items.adapters !== undefined && (
                       <tr className="border-b hover:bg-gray-50">
                         <td className="p-3 text-sm">电源适配器</td>
-                        <td className="p-3 text-center text-sm font-medium">{returningRecord.items.adapters} 个</td>
+                        <td className="p-3 text-center text-sm font-medium">
+                          {returningRecord.items.adapters} 个
+                        </td>
                         <td className="p-3">
                           <Input
                             type="number"
                             min="0"
                             max={returningRecord.items.adapters}
                             value={returnedItems.adapters || ""}
-                            onChange={(e) => handleReturnItemChange("adapters", e.target.value)}
+                            onChange={(e) =>
+                              handleReturnItemChange("adapters", e.target.value)
+                            }
                             className="text-center"
                           />
                         </td>
-                        <td className={`p-3 text-center text-sm font-medium ${
-                          (returningRecord.items.adapters || 0) - (returnedItems.adapters || 0) > 0
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }`}>
-                          {(returningRecord.items.adapters || 0) - (returnedItems.adapters || 0)} 个
+                        <td
+                          className={`p-3 text-center text-sm font-medium ${
+                            (returningRecord.items.adapters || 0) -
+                              (returnedItems.adapters || 0) >
+                            0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {(returningRecord.items.adapters || 0) -
+                            (returnedItems.adapters || 0)}{" "}
+                          个
                         </td>
                       </tr>
                     )}
-                    {(returningRecord?.items.inkC || returningRecord?.items.inkM || returningRecord?.items.inkY || returningRecord?.items.inkK) && (
+                    {(returningRecord?.items.inkC ||
+                      returningRecord?.items.inkM ||
+                      returningRecord?.items.inkY ||
+                      returningRecord?.items.inkK) && (
                       <>
                         {returningRecord.items.inkC !== undefined && (
                           <tr className="border-b hover:bg-gray-50">
                             <td className="p-3 text-sm">墨水 - 青色(C)</td>
-                            <td className="p-3 text-center text-sm font-medium">{returningRecord.items.inkC} 瓶</td>
+                            <td className="p-3 text-center text-sm font-medium">
+                              {returningRecord.items.inkC} 瓶
+                            </td>
                             <td className="p-3">
                               <Input
                                 type="number"
                                 min="0"
                                 max={returningRecord.items.inkC}
                                 value={returnedItems.inkC || ""}
-                                onChange={(e) => handleReturnItemChange("inkC", e.target.value)}
+                                onChange={(e) =>
+                                  handleReturnItemChange("inkC", e.target.value)
+                                }
                                 className="text-center"
                               />
                             </td>
-                            <td className={`p-3 text-center text-sm font-medium ${
-                              (returningRecord.items.inkC || 0) - (returnedItems.inkC || 0) > 0
-                                ? 'text-red-600'
-                                : 'text-green-600'
-                            }`}>
-                              {(returningRecord.items.inkC || 0) - (returnedItems.inkC || 0)} 瓶
+                            <td
+                              className={`p-3 text-center text-sm font-medium ${
+                                (returningRecord.items.inkC || 0) -
+                                  (returnedItems.inkC || 0) >
+                                0
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {(returningRecord.items.inkC || 0) -
+                                (returnedItems.inkC || 0)}{" "}
+                              瓶
                             </td>
                           </tr>
                         )}
                         {returningRecord.items.inkM !== undefined && (
                           <tr className="border-b hover:bg-gray-50">
                             <td className="p-3 text-sm">墨水 - 品红(M)</td>
-                            <td className="p-3 text-center text-sm font-medium">{returningRecord.items.inkM} 瓶</td>
+                            <td className="p-3 text-center text-sm font-medium">
+                              {returningRecord.items.inkM} 瓶
+                            </td>
                             <td className="p-3">
                               <Input
                                 type="number"
                                 min="0"
                                 max={returningRecord.items.inkM}
                                 value={returnedItems.inkM || ""}
-                                onChange={(e) => handleReturnItemChange("inkM", e.target.value)}
+                                onChange={(e) =>
+                                  handleReturnItemChange("inkM", e.target.value)
+                                }
                                 className="text-center"
                               />
                             </td>
-                            <td className={`p-3 text-center text-sm font-medium ${
-                              (returningRecord.items.inkM || 0) - (returnedItems.inkM || 0) > 0
-                                ? 'text-red-600'
-                                : 'text-green-600'
-                            }`}>
-                              {(returningRecord.items.inkM || 0) - (returnedItems.inkM || 0)} 瓶
+                            <td
+                              className={`p-3 text-center text-sm font-medium ${
+                                (returningRecord.items.inkM || 0) -
+                                  (returnedItems.inkM || 0) >
+                                0
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {(returningRecord.items.inkM || 0) -
+                                (returnedItems.inkM || 0)}{" "}
+                              瓶
                             </td>
                           </tr>
                         )}
                         {returningRecord.items.inkY !== undefined && (
                           <tr className="border-b hover:bg-gray-50">
                             <td className="p-3 text-sm">墨水 - 黄色(Y)</td>
-                            <td className="p-3 text-center text-sm font-medium">{returningRecord.items.inkY} 瓶</td>
+                            <td className="p-3 text-center text-sm font-medium">
+                              {returningRecord.items.inkY} 瓶
+                            </td>
                             <td className="p-3">
                               <Input
                                 type="number"
                                 min="0"
                                 max={returningRecord.items.inkY}
                                 value={returnedItems.inkY || ""}
-                                onChange={(e) => handleReturnItemChange("inkY", e.target.value)}
+                                onChange={(e) =>
+                                  handleReturnItemChange("inkY", e.target.value)
+                                }
                                 className="text-center"
                               />
                             </td>
-                            <td className={`p-3 text-center text-sm font-medium ${
-                              (returningRecord.items.inkY || 0) - (returnedItems.inkY || 0) > 0
-                                ? 'text-red-600'
-                                : 'text-green-600'
-                            }`}>
-                              {(returningRecord.items.inkY || 0) - (returnedItems.inkY || 0)} 瓶
+                            <td
+                              className={`p-3 text-center text-sm font-medium ${
+                                (returningRecord.items.inkY || 0) -
+                                  (returnedItems.inkY || 0) >
+                                0
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {(returningRecord.items.inkY || 0) -
+                                (returnedItems.inkY || 0)}{" "}
+                              瓶
                             </td>
                           </tr>
                         )}
                         {returningRecord.items.inkK !== undefined && (
                           <tr className="border-b hover:bg-gray-50">
                             <td className="p-3 text-sm">墨水 - 黑色(K)</td>
-                            <td className="p-3 text-center text-sm font-medium">{returningRecord.items.inkK} 瓶</td>
+                            <td className="p-3 text-center text-sm font-medium">
+                              {returningRecord.items.inkK} 瓶
+                            </td>
                             <td className="p-3">
                               <Input
                                 type="number"
                                 min="0"
                                 max={returningRecord.items.inkK}
                                 value={returnedItems.inkK || ""}
-                                onChange={(e) => handleReturnItemChange("inkK", e.target.value)}
+                                onChange={(e) =>
+                                  handleReturnItemChange("inkK", e.target.value)
+                                }
                                 className="text-center"
                               />
                             </td>
-                            <td className={`p-3 text-center text-sm font-medium ${
-                              (returningRecord.items.inkK || 0) - (returnedItems.inkK || 0) > 0
-                                ? 'text-red-600'
-                                : 'text-green-600'
-                            }`}>
-                              {(returningRecord.items.inkK || 0) - (returnedItems.inkK || 0)} 瓶
+                            <td
+                              className={`p-3 text-center text-sm font-medium ${
+                                (returningRecord.items.inkK || 0) -
+                                  (returnedItems.inkK || 0) >
+                                0
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {(returningRecord.items.inkK || 0) -
+                                (returnedItems.inkK || 0)}{" "}
+                              瓶
                             </td>
                           </tr>
                         )}
@@ -638,394 +782,717 @@ export function OutboundManagement() {
         </Card>
       ) : showHistory ? (
         <>
-        <Card>
-          <CardHeader>
-            <CardTitle>出库历史记录</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {outboundRecords && outboundRecords.length > 0 ? (
-                outboundRecords.map((record) => (
-                  <div
-                    key={record.id}
-                    data-testid="outbound-record-card"
-                    className={`border rounded-lg p-4 space-y-2 ${record.status === "returned" ? "bg-green-50" : ""}`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{record.deviceName}</p>
-                          {record.status === "returned" && (
-                            <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">
-                              已归还
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          目的地: {record.destination}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(record.date).toLocaleString("zh-CN")}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          {record.status === "outbound" && (
-                            <Button
-                              data-testid="outbound-return-button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => startReturn(record)}
-                            >
-                              归还
-                            </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            data-testid="outbound-delete-button"
-                            aria-label="删除出库记录"
-                            onClick={() => openDeleteDialog(record)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-sm">
-                      <p>操作员: {record.operator}</p>
-                      {record.items.printerModel && (
-                        <p>
-                          打印机:{" "}
-                          {getPrinterDisplayName(record.items.printerModel)} -{" "}
-                          {record.items.paperType} ×{" "}
-                          {record.items.paperQuantity}张
-                        </p>
-                      )}
-                      {record.items.routers && (
-                        <p>路由器: {record.items.routers}台</p>
-                      )}
-                      {record.items.powerStrips && (
-                        <p>插板: {record.items.powerStrips}个</p>
-                      )}
-                      {record.items.usbCables && (
-                        <p>USB线: {record.items.usbCables}根</p>
-                      )}
-                      {record.items.networkCables && (
-                        <p>网线: {record.items.networkCables}根</p>
-                      )}
-                      {record.items.adapters && (
-                        <p>电源适配器: {record.items.adapters}个</p>
-                      )}
-                      {(record.items.inkC ||
-                        record.items.inkM ||
-                        record.items.inkY ||
-                        record.items.inkK) && (
-                        <p>
-                          墨水: C×{record.items.inkC || 0} M×
-                          {record.items.inkM || 0} Y×{record.items.inkY || 0} K×
-                          {record.items.inkK || 0}
-                        </p>
-                      )}
-                      {record.notes && (
-                        <p className="text-muted-foreground">
-                          出库备注: {record.notes}
-                        </p>
-                      )}
-
-                      {record.returnInfo && (
-                        <div className="mt-3 pt-3 border-t border-green-200">
-                          <p className="font-medium text-green-700">归还信息</p>
-                          <p>
-                            归还时间:{" "}
-                            {new Date(
-                              record.returnInfo.returnDate,
-                            ).toLocaleString("zh-CN")}
-                          </p>
-                          <p>归还操作员: {record.returnInfo.returnOperator}</p>
-                          {record.returnInfo.equipmentDamage && (
-                            <p className="text-red-600">
-                              损坏情况: {record.returnInfo.equipmentDamage}
-                            </p>
-                          )}
-                          {record.returnInfo.returnNotes && (
-                            <p className="text-muted-foreground">
-                              归还备注: {record.returnInfo.returnNotes}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  暂无出库记录
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <AlertDialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认删除出库记录</AlertDialogTitle>
-              <AlertDialogDescription>
-                {recordToDelete
-                  ? `删除后将无法恢复记录“${recordToDelete.deviceName} → ${recordToDelete.destination}”。库存数据不会自动回滚，请谨慎操作。`
-                  : "删除后将无法恢复该记录。"}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                data-testid="outbound-delete-confirm"
-                className="bg-red-600 hover:bg-red-700"
-                onClick={() => recordToDelete && handleDeleteRecord(recordToDelete)}
-              >
-                删除
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        </>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PackageMinus className="w-5 h-5" />
-                出库信息
-              </CardTitle>
+              <CardTitle>出库历史记录</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>设备 *</Label>
-                <Select value={deviceId} onValueChange={setDeviceId}>
-                  <SelectTrigger data-testid="outbound-device-select">
-                    <SelectValue placeholder="选择设备" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {devices?.map((device) => (
-                      <SelectItem key={device.id} value={device.id}>
-                        {device.name} - {device.location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <CardContent>
+              <div className="space-y-4">
+                {outboundRecords && outboundRecords.length > 0 ? (
+                  outboundRecords.map((record) => (
+                    <div
+                      key={record.id}
+                      data-testid="outbound-record-card"
+                      className={`border rounded-lg p-4 space-y-2 ${record.status === "returned" ? "bg-green-50" : ""}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{record.deviceName}</p>
+                            {record.status === "returned" && (
+                              <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">
+                                已归还
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            目的地: {record.destination}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(record.date).toLocaleString("zh-CN")}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            {record.status === "outbound" && (
+                              <Button
+                                data-testid="outbound-return-button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => startReturn(record)}
+                              >
+                                归还
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              data-testid="outbound-delete-button"
+                              aria-label="删除出库记录"
+                              onClick={() => openDeleteDialog(record)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm">
+                        <p>操作员: {record.operator}</p>
+                        {record.items.printerModel && (
+                          <p>
+                            打印机:{" "}
+                            {getPrinterDisplayName(record.items.printerModel)} -{" "}
+                            {record.items.paperType} ×{" "}
+                            {record.items.paperQuantity}张
+                          </p>
+                        )}
+                        {record.items.routers && (
+                          <p>路由器: {record.items.routers}台</p>
+                        )}
+                        {record.items.powerStrips && (
+                          <p>插板: {record.items.powerStrips}个</p>
+                        )}
+                        {record.items.usbCables && (
+                          <p>USB线: {record.items.usbCables}根</p>
+                        )}
+                        {record.items.networkCables && (
+                          <p>网线: {record.items.networkCables}根</p>
+                        )}
+                        {record.items.adapters && (
+                          <p>电源适配器: {record.items.adapters}个</p>
+                        )}
+                        {(record.items.inkC ||
+                          record.items.inkM ||
+                          record.items.inkY ||
+                          record.items.inkK) && (
+                          <p>
+                            墨水: C×{record.items.inkC || 0} M×
+                            {record.items.inkM || 0} Y×{record.items.inkY || 0}{" "}
+                            K×
+                            {record.items.inkK || 0}
+                          </p>
+                        )}
+                        {record.notes && (
+                          <p className="text-muted-foreground">
+                            出库备注: {record.notes}
+                          </p>
+                        )}
 
-              <div>
-                <Label>目的地 *</Label>
-                <Input
-                  data-testid="outbound-destination"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="例如：上海展厅"
-                />
-              </div>
-
-              <div>
-                <Label>操作员 *</Label>
-                <Input
-                  data-testid="outbound-operator"
-                  value={operator}
-                  onChange={(e) => setOperator(e.target.value)}
-                  placeholder="例如：张三"
-                />
-              </div>
-
-              <div>
-                <Label>备注</Label>
-                <Input
-                  data-testid="outbound-notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="可选"
-                />
+                        {record.returnInfo && (
+                          <div className="mt-3 pt-3 border-t border-green-200">
+                            <p className="font-medium text-green-700">
+                              归还信息
+                            </p>
+                            <p>
+                              归还时间:{" "}
+                              {new Date(
+                                record.returnInfo.returnDate,
+                              ).toLocaleString("zh-CN")}
+                            </p>
+                            <p>
+                              归还操作员: {record.returnInfo.returnOperator}
+                            </p>
+                            {record.returnInfo.equipmentDamage && (
+                              <p className="text-red-600">
+                                损坏情况: {record.returnInfo.equipmentDamage}
+                              </p>
+                            )}
+                            {record.returnInfo.returnNotes && (
+                              <p className="text-muted-foreground">
+                                归还备注: {record.returnInfo.returnNotes}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    暂无出库记录
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>打印机与相纸</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>打印机型号</Label>
-                <Select
-                  value={printerModel}
-                  onValueChange={handlePrinterModelChange}
+          <AlertDialog
+            open={deleteDialogOpen}
+            onOpenChange={handleDeleteDialogChange}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>确认删除出库记录</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {recordToDelete
+                    ? `删除后将无法恢复记录“${recordToDelete.deviceName} → ${recordToDelete.destination}”。库存数据不会自动回滚，请谨慎操作。`
+                    : "删除后将无法恢复该记录。"}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction
+                  data-testid="outbound-delete-confirm"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() =>
+                    recordToDelete && handleDeleteRecord(recordToDelete)
+                  }
                 >
-                  <SelectTrigger data-testid="outbound-printer-select">
-                    <SelectValue placeholder="选择打印机型号" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(inventory.paperStock).sort((a, b) => {
-                      // 定义打印机型号的显示顺序
-                      const order = [
-                        'DNP-自购',
-                        'DNP-锦联',
-                        'DNP-微印创',
-                        'EPSON-L8058',
-                        'EPSON-L18058',
-                        '西铁城CX-02',
-                        'HITI诚研P525L'
-                      ];
-                      const indexA = order.indexOf(a);
-                      const indexB = order.indexOf(b);
-                      // 如果型号在order中，按order排序；否则放到最后按字母排序
-                      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                      if (indexA !== -1) return -1;
-                      if (indexB !== -1) return 1;
-                      return a.localeCompare(b, 'zh-CN');
-                    }).map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {getPrinterDisplayName(model as PrinterModel)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* 设备选择（可选） */}
-              {printerModel && (
+                  删除
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      ) : (
+        <div className="space-y-4 md:space-y-6">
+          {/* Mobile: Single column form with accordion sections */}
+          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <PackageMinus className="w-4 h-4 md:w-5 md:h-5" />
+                  出库信息
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <Label>携带打印机设备（可选）</Label>
-                  {printerModel.startsWith('DNP-') && (
-                    <p className="text-xs text-amber-600 mb-2">
-                      💡 提示：DNP 打印机建议选择对应设备，确保相纸与打印机匹配
-                    </p>
-                  )}
-                  <Select
-                    value={selectedDeviceInstance}
-                    onValueChange={setSelectedDeviceInstance}
-                  >
-                    <SelectTrigger data-testid="outbound-device-instance-select">
-                      <SelectValue placeholder="选择具体设备或仅出库相纸" />
+                  <Label className="text-sm md:text-base">设备 *</Label>
+                  <Select value={deviceId} onValueChange={setDeviceId}>
+                    <SelectTrigger
+                      data-testid="outbound-device-select"
+                      className="min-h-[44px]"
+                    >
+                      <SelectValue placeholder="选择设备" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">仅出库相纸，不带打印机实体</SelectItem>
-                      {getAvailableDevices().map((instance) => (
-                        <SelectItem key={instance.id} value={instance.id}>
-                          {instance.id} ({instance.location} · 在库)
+                      {devices?.map((device) => (
+                        <SelectItem key={device.id} value={device.id}>
+                          {device.name} - {device.location}
                         </SelectItem>
                       ))}
-                      {getAvailableDevices().length === 0 && (
-                        <SelectItem value="__no_devices__" disabled>
-                          暂无在库设备
-                        </SelectItem>
-                      )}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
 
-              {printerModel && (
-                <>
-                  <div>
-                    <Label>相纸类型</Label>
-                    <Select value={paperType} onValueChange={setPaperType}>
-                      <SelectTrigger data-testid="outbound-paper-type">
-                        <SelectValue placeholder="选择相纸类型" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getPaperTypes(printerModel).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type} (库存:{" "}
-                            {inventory.paperStock[printerModel][type]}张)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label className="text-sm md:text-base">目的地 *</Label>
+                  <Input
+                    data-testid="outbound-destination"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    placeholder="例如：上海展厅"
+                    className="min-h-[44px]"
+                  />
+                </div>
 
-                  <div>
-                    <Label>相纸数量</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      data-testid="outbound-paper-qty"
-                      value={items.paperQuantity || ""}
-                      onChange={(e) =>
-                        handleItemChange("paperQuantity", e.target.value)
-                      }
-                      placeholder="张"
-                    />
-                  </div>
+                <div>
+                  <Label className="text-sm md:text-base">操作员 *</Label>
+                  <Input
+                    data-testid="outbound-operator"
+                    value={operator}
+                    onChange={(e) => setOperator(e.target.value)}
+                    placeholder="例如：张三"
+                    className="min-h-[44px]"
+                  />
+                </div>
 
-                  {printerModel.startsWith("EPSON") && (
-                    <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <Label className="text-sm md:text-base">备注</Label>
+                  <Input
+                    data-testid="outbound-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="可选"
+                    className="min-h-[44px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mobile: Use Accordion for printer section */}
+            <div className="md:hidden">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="printer-paper">
+                  <AccordionTrigger className="text-base font-semibold">
+                    打印机与相纸
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <Label className="text-sm">打印机型号</Label>
+                      <Select
+                        value={printerModel}
+                        onValueChange={handlePrinterModelChange}
+                      >
+                        <SelectTrigger
+                          data-testid="outbound-printer-select"
+                          className="min-h-[44px]"
+                        >
+                          <SelectValue placeholder="选择打印机型号" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(inventory.paperStock)
+                            .sort((a, b) => {
+                              // 定义打印机型号的显示顺序
+                              const order = [
+                                "DNP-自购",
+                                "DNP-锦联",
+                                "DNP-微印创",
+                                "EPSON-L8058",
+                                "EPSON-L18058",
+                                "西铁城CX-02",
+                                "HITI诚研P525L",
+                              ];
+                              const indexA = order.indexOf(a);
+                              const indexB = order.indexOf(b);
+                              // 如果型号在order中，按order排序；否则放到最后按字母排序
+                              if (indexA !== -1 && indexB !== -1)
+                                return indexA - indexB;
+                              if (indexA !== -1) return -1;
+                              if (indexB !== -1) return 1;
+                              return a.localeCompare(b, "zh-CN");
+                            })
+                            .map((model) => (
+                              <SelectItem key={model} value={model}>
+                                {getPrinterDisplayName(model as PrinterModel)}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* 设备选择（可选） */}
+                    {printerModel && (
                       <div>
-                        <Label className="text-xs">青色墨水</Label>
+                        <Label className="text-sm">
+                          携带打印机设备（可选）
+                        </Label>
+                        {printerModel.startsWith("DNP-") && (
+                          <p className="text-xs text-amber-600 mb-2">
+                            💡 提示：DNP
+                            打印机建议选择对应设备，确保相纸与打印机匹配
+                          </p>
+                        )}
+                        <Select
+                          value={selectedDeviceInstance}
+                          onValueChange={setSelectedDeviceInstance}
+                        >
+                          <SelectTrigger
+                            data-testid="outbound-device-instance-select"
+                            className="min-h-[44px]"
+                          >
+                            <SelectValue placeholder="选择具体设备或仅出库相纸" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">
+                              仅出库相纸，不带打印机实体
+                            </SelectItem>
+                            {getAvailableDevices().map((instance) => (
+                              <SelectItem key={instance.id} value={instance.id}>
+                                {instance.id} ({instance.location} · 在库)
+                              </SelectItem>
+                            ))}
+                            {getAvailableDevices().length === 0 && (
+                              <SelectItem value="__no_devices__" disabled>
+                                暂无在库设备
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {printerModel && (
+                      <>
+                        <div>
+                          <Label className="text-sm">相纸类型</Label>
+                          <Select
+                            value={paperType}
+                            onValueChange={setPaperType}
+                          >
+                            <SelectTrigger
+                              data-testid="outbound-paper-type"
+                              className="min-h-[44px]"
+                            >
+                              <SelectValue placeholder="选择相纸类型" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getPaperTypes(printerModel).map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type} (库存:{" "}
+                                  {inventory.paperStock[printerModel][type]}张)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm">相纸数量</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            data-testid="outbound-paper-qty"
+                            value={items.paperQuantity || ""}
+                            onChange={(e) =>
+                              handleItemChange("paperQuantity", e.target.value)
+                            }
+                            placeholder="张"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+
+                        {printerModel.startsWith("EPSON") && (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs">青色墨水</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={inventory.epsonInkStock.C}
+                                value={items.inkC || ""}
+                                onChange={(e) =>
+                                  handleItemChange("inkC", e.target.value)
+                                }
+                                placeholder="瓶"
+                                className="min-h-[44px]"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">品红墨水</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={inventory.epsonInkStock.M}
+                                value={items.inkM || ""}
+                                onChange={(e) =>
+                                  handleItemChange("inkM", e.target.value)
+                                }
+                                placeholder="瓶"
+                                className="min-h-[44px]"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">黄色墨水</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={inventory.epsonInkStock.Y}
+                                value={items.inkY || ""}
+                                onChange={(e) =>
+                                  handleItemChange("inkY", e.target.value)
+                                }
+                                placeholder="瓶"
+                                className="min-h-[44px]"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">黑色墨水</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={inventory.epsonInkStock.K}
+                                value={items.inkK || ""}
+                                onChange={(e) =>
+                                  handleItemChange("inkK", e.target.value)
+                                }
+                                placeholder="瓶"
+                                className="min-h-[44px]"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="accessories">
+                  <AccordionTrigger className="text-base font-semibold">
+                    其他配件
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <Label className="text-sm">路由器</Label>
                         <Input
                           type="number"
                           min="0"
-                          max={inventory.epsonInkStock.C}
-                          value={items.inkC || ""}
+                          max={inventory.equipmentStock.routers}
+                          value={items.routers || ""}
                           onChange={(e) =>
-                            handleItemChange("inkC", e.target.value)
+                            handleItemChange("routers", e.target.value)
                           }
-                          placeholder="瓶"
+                          placeholder={`库存: ${inventory.equipmentStock.routers}`}
+                          className="min-h-[44px]"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">品红墨水</Label>
+                        <Label className="text-sm">插板</Label>
                         <Input
                           type="number"
                           min="0"
-                          max={inventory.epsonInkStock.M}
-                          value={items.inkM || ""}
+                          max={inventory.equipmentStock.powerStrips}
+                          value={items.powerStrips || ""}
                           onChange={(e) =>
-                            handleItemChange("inkM", e.target.value)
+                            handleItemChange("powerStrips", e.target.value)
                           }
-                          placeholder="瓶"
+                          placeholder={`库存: ${inventory.equipmentStock.powerStrips}`}
+                          className="min-h-[44px]"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">黄色墨水</Label>
+                        <Label className="text-sm">USB线</Label>
                         <Input
                           type="number"
                           min="0"
-                          max={inventory.epsonInkStock.Y}
-                          value={items.inkY || ""}
+                          max={inventory.equipmentStock.usbCables}
+                          value={items.usbCables || ""}
                           onChange={(e) =>
-                            handleItemChange("inkY", e.target.value)
+                            handleItemChange("usbCables", e.target.value)
                           }
-                          placeholder="瓶"
+                          placeholder={`库存: ${inventory.equipmentStock.usbCables}`}
+                          className="min-h-[44px]"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">黑色墨水</Label>
+                        <Label className="text-sm">网线</Label>
                         <Input
                           type="number"
                           min="0"
-                          max={inventory.epsonInkStock.K}
-                          value={items.inkK || ""}
+                          max={inventory.equipmentStock.networkCables}
+                          value={items.networkCables || ""}
                           onChange={(e) =>
-                            handleItemChange("inkK", e.target.value)
+                            handleItemChange("networkCables", e.target.value)
                           }
-                          placeholder="瓶"
+                          placeholder={`库存: ${inventory.equipmentStock.networkCables}`}
+                          className="min-h-[44px]"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">电源适配器</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max={inventory.equipmentStock.adapters}
+                          value={items.adapters || ""}
+                          onChange={(e) =>
+                            handleItemChange("adapters", e.target.value)
+                          }
+                          placeholder={`库存: ${inventory.equipmentStock.adapters}`}
+                          className="min-h-[44px]"
                         />
                       </div>
                     </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
 
-          <Card className="lg:col-span-2">
+            {/* Desktop: Regular card layout */}
+            <Card className="hidden md:block">
+              <CardHeader>
+                <CardTitle className="text-base md:text-lg">
+                  打印机与相纸
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-sm md:text-base">打印机型号</Label>
+                  <Select
+                    value={printerModel}
+                    onValueChange={handlePrinterModelChange}
+                  >
+                    <SelectTrigger
+                      data-testid="outbound-printer-select"
+                      className="min-h-[44px]"
+                    >
+                      <SelectValue placeholder="选择打印机型号" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(inventory.paperStock)
+                        .sort((a, b) => {
+                          // 定义打印机型号的显示顺序
+                          const order = [
+                            "DNP-自购",
+                            "DNP-锦联",
+                            "DNP-微印创",
+                            "EPSON-L8058",
+                            "EPSON-L18058",
+                            "西铁城CX-02",
+                            "HITI诚研P525L",
+                          ];
+                          const indexA = order.indexOf(a);
+                          const indexB = order.indexOf(b);
+                          // 如果型号在order中，按order排序；否则放到最后按字母排序
+                          if (indexA !== -1 && indexB !== -1)
+                            return indexA - indexB;
+                          if (indexA !== -1) return -1;
+                          if (indexB !== -1) return 1;
+                          return a.localeCompare(b, "zh-CN");
+                        })
+                        .map((model) => (
+                          <SelectItem key={model} value={model}>
+                            {getPrinterDisplayName(model as PrinterModel)}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 设备选择（可选） */}
+                {printerModel && (
+                  <div>
+                    <Label className="text-sm md:text-base">
+                      携带打印机设备（可选）
+                    </Label>
+                    {printerModel.startsWith("DNP-") && (
+                      <p className="text-xs text-amber-600 mb-2">
+                        💡 提示：DNP
+                        打印机建议选择对应设备，确保相纸与打印机匹配
+                      </p>
+                    )}
+                    <Select
+                      value={selectedDeviceInstance}
+                      onValueChange={setSelectedDeviceInstance}
+                    >
+                      <SelectTrigger
+                        data-testid="outbound-device-instance-select"
+                        className="min-h-[44px]"
+                      >
+                        <SelectValue placeholder="选择具体设备或仅出库相纸" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">
+                          仅出库相纸，不带打印机实体
+                        </SelectItem>
+                        {getAvailableDevices().map((instance) => (
+                          <SelectItem key={instance.id} value={instance.id}>
+                            {instance.id} ({instance.location} · 在库)
+                          </SelectItem>
+                        ))}
+                        {getAvailableDevices().length === 0 && (
+                          <SelectItem value="__no_devices__" disabled>
+                            暂无在库设备
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {printerModel && (
+                  <>
+                    <div>
+                      <Label className="text-sm md:text-base">相纸类型</Label>
+                      <Select value={paperType} onValueChange={setPaperType}>
+                        <SelectTrigger
+                          data-testid="outbound-paper-type"
+                          className="min-h-[44px]"
+                        >
+                          <SelectValue placeholder="选择相纸类型" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getPaperTypes(printerModel).map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type} (库存:{" "}
+                              {inventory.paperStock[printerModel][type]}张)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm md:text-base">相纸数量</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        data-testid="outbound-paper-qty"
+                        value={items.paperQuantity || ""}
+                        onChange={(e) =>
+                          handleItemChange("paperQuantity", e.target.value)
+                        }
+                        placeholder="张"
+                        className="min-h-[44px]"
+                      />
+                    </div>
+
+                    {printerModel.startsWith("EPSON") && (
+                      <div className="grid grid-cols-4 gap-2">
+                        <div>
+                          <Label className="text-xs">青色墨水</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={inventory.epsonInkStock.C}
+                            value={items.inkC || ""}
+                            onChange={(e) =>
+                              handleItemChange("inkC", e.target.value)
+                            }
+                            placeholder="瓶"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">品红墨水</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={inventory.epsonInkStock.M}
+                            value={items.inkM || ""}
+                            onChange={(e) =>
+                              handleItemChange("inkM", e.target.value)
+                            }
+                            placeholder="瓶"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">黄色墨水</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={inventory.epsonInkStock.Y}
+                            value={items.inkY || ""}
+                            onChange={(e) =>
+                              handleItemChange("inkY", e.target.value)
+                            }
+                            placeholder="瓶"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">黑色墨水</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={inventory.epsonInkStock.K}
+                            value={items.inkK || ""}
+                            onChange={(e) =>
+                              handleItemChange("inkK", e.target.value)
+                            }
+                            placeholder="瓶"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Desktop: Other accessories card */}
+          <Card className="hidden md:block md:col-span-2">
             <CardHeader>
-              <CardTitle>其他配件</CardTitle>
+              <CardTitle className="text-base md:text-lg">其他配件</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 <div>
-                  <Label>路由器</Label>
+                  <Label className="text-sm">路由器</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1035,10 +1502,11 @@ export function OutboundManagement() {
                       handleItemChange("routers", e.target.value)
                     }
                     placeholder={`库存: ${inventory.equipmentStock.routers}`}
+                    className="min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <Label>插板</Label>
+                  <Label className="text-sm">插板</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1048,10 +1516,11 @@ export function OutboundManagement() {
                       handleItemChange("powerStrips", e.target.value)
                     }
                     placeholder={`库存: ${inventory.equipmentStock.powerStrips}`}
+                    className="min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <Label>USB线</Label>
+                  <Label className="text-sm">USB线</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1061,10 +1530,11 @@ export function OutboundManagement() {
                       handleItemChange("usbCables", e.target.value)
                     }
                     placeholder={`库存: ${inventory.equipmentStock.usbCables}`}
+                    className="min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <Label>网线</Label>
+                  <Label className="text-sm">网线</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1074,10 +1544,11 @@ export function OutboundManagement() {
                       handleItemChange("networkCables", e.target.value)
                     }
                     placeholder={`库存: ${inventory.equipmentStock.networkCables}`}
+                    className="min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <Label>电源适配器</Label>
+                  <Label className="text-sm">电源适配器</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1087,18 +1558,20 @@ export function OutboundManagement() {
                       handleItemChange("adapters", e.target.value)
                     }
                     placeholder={`库存: ${inventory.equipmentStock.adapters}`}
+                    className="min-h-[44px]"
                   />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <div className="lg:col-span-2 flex justify-end">
+          {/* Sticky submit button for mobile */}
+          <div className="sticky bottom-0 bg-background border-t p-4 md:relative md:border-t-0 md:p-0 md:bg-transparent md:flex md:justify-end">
             <Button
               data-testid="outbound-submit"
               onClick={handleSubmit}
               size="lg"
-              className="flex items-center gap-2"
+              className="w-full md:w-auto flex items-center justify-center gap-2 min-h-[44px]"
             >
               <Save className="w-4 h-4" />
               提交出库记录

@@ -50,15 +50,15 @@ export function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">统计看板</h1>
-          <p className="text-gray-600 mt-1">正在加载数据...</p>
+          <h1 className="text-2xl md:text-3xl font-bold">统计看板</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">正在加载数据...</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {[1, 2, 3, 4].map(i => (
             <Card key={i}>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="animate-pulse">
                   <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
                   <div className="h-8 bg-gray-200 rounded w-3/4"></div>
@@ -73,8 +73,8 @@ export function Dashboard() {
 
   if (error) {
     return (
-      <div className="text-center text-red-500 py-8">
-        加载仪表盘数据失败，请稍后重试
+      <div className="text-center text-red-500 py-8 px-4">
+        <p className="text-sm md:text-base">加载仪表盘数据失败，请稍后重试</p>
       </div>
     )
   }
@@ -120,17 +120,17 @@ export function Dashboard() {
     .sort((a, b) => b.count - a.count)
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* 页面标题和控制 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold">统计看板</h1>
-          <p className="text-gray-600 mt-1">设备和库存统计概览</p>
+          <h1 className="text-2xl md:text-3xl font-bold">统计看板</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">设备和库存统计概览</p>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-y-0 md:space-x-4">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-full md:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -140,22 +140,22 @@ export function Dashboard() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button variant="outline" onClick={() => window.location.reload()} className="w-full md:w-auto">
             刷新数据
           </Button>
         </div>
       </div>
 
       {/* 关键指标卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总资产</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm md:text-base font-medium">总资产</CardTitle>
+            <Package className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="dashboard-total-assets">{assets.total}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pt-2">
+            <div className="text-xl md:text-2xl font-bold" data-testid="dashboard-total-assets">{assets.total}</div>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
               可用: {assets.available} | 维修: {assets.maintenance}
             </p>
           </CardContent>
@@ -163,12 +163,12 @@ export function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">使用率</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm md:text-base font-medium">使用率</CardTitle>
+            <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="dashboard-utilization">{assets.utilizationRate}%</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pt-2">
+            <div className="text-xl md:text-2xl font-bold" data-testid="dashboard-utilization">{assets.utilizationRate}%</div>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
               设备整体使用率
             </p>
           </CardContent>
@@ -176,12 +176,12 @@ export function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">低库存告警</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm md:text-base font-medium">低库存告警</CardTitle>
+            <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500" data-testid="dashboard-low-stock">{inventory.lowStockItems}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pt-2">
+            <div className="text-xl md:text-2xl font-bold text-red-500" data-testid="dashboard-low-stock">{inventory.lowStockItems}</div>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
               需要补充的耗材项目
             </p>
           </CardContent>
@@ -189,12 +189,12 @@ export function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">维护记录</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm md:text-base font-medium">维护记录</CardTitle>
+            <Activity className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="dashboard-maintenance">{maintenance.totalRecords}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pt-2">
+            <div className="text-xl md:text-2xl font-bold" data-testid="dashboard-maintenance">{maintenance.totalRecords}</div>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
               本月维护操作次数
             </p>
           </CardContent>
@@ -203,76 +203,82 @@ export function Dashboard() {
 
       {/* 详细统计标签页 */}
       <Tabs defaultValue="assets" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="assets">设备统计</TabsTrigger>
-          <TabsTrigger value="inventory">库存管理</TabsTrigger>
-          <TabsTrigger value="trends">操作趋势</TabsTrigger>
-          <TabsTrigger value="maintenance">维护分析</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+          <TabsTrigger value="assets" className="text-xs md:text-sm">设备统计</TabsTrigger>
+          <TabsTrigger value="inventory" className="text-xs md:text-sm">库存管理</TabsTrigger>
+          <TabsTrigger value="trends" className="text-xs md:text-sm">操作趋势</TabsTrigger>
+          <TabsTrigger value="maintenance" className="text-xs md:text-sm">维护分析</TabsTrigger>
         </TabsList>
 
         <TabsContent value="assets" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 图表区域 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {/* 打印机状态分布 */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Printer className="h-5 w-5" />
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Printer className="w-4 h-4 md:w-5 md:h-5" />
                   打印机状态分布
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={printerStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ status, count }) => `${status}: ${count}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {printerStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+              <CardContent className="pt-0">
+                <div className="h-64 md:h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={printerStatusData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ status, percent }) => `${status} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius="70%"
+                        fill="#8884d8"
+                        dataKey="count"
+                      >
+                        {printerStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
 
             {/* 路由器状态分布 */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Router className="h-5 w-5" />
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Wifi className="w-4 h-4 md:w-5 md:h-5" />
                   路由器状态分布
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={routerStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ status, count }) => `${status}: ${count}`}
-                      outerRadius={80}
-                      fill="#82ca9d"
-                      dataKey="count"
-                    >
-                      {routerStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+              <CardContent className="pt-0">
+                <div className="h-64 md:h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={routerStatusData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ status, percent }) => `${status} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius="70%"
+                        fill="#8884d8"
+                        dataKey="count"
+                      >
+                        {routerStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
+          </div>
 
             {/* 打印机品牌分布 */}
             <Card className="lg:col-span-2">
