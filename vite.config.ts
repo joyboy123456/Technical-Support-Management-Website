@@ -74,14 +74,8 @@ export default defineConfig({
         },
       },
     },
-    // 启用压缩
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    // 启用压缩 (使用默认的 esbuild)
+    minify: true,
   },
   server: {
     port: 3000,
