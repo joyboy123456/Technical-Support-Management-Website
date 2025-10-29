@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # PostgreSQL API 服务
+  postgres-api:
+    image: swr.cn-east-3.myhuaweicloud.com/btc8_public/tech-support-api:v2
+    container_name: tech-support-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres-db
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-myuser}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-LDb3rEMrgxqQe2t7yYPF}
+      - DB_NAME=${POSTGRES_DB:-mydb}
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    external_links:
+      - postgres-db
+    networks:
+      - tech-support-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); const req = http.request({hostname: 'localhost', port: 3001, path: '/health'}, (res) => process.exit(res.statusCode === 200 ? 0 : 1)); req.on('error', () => process.exit(1)); req.end();"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 前端应用
+  frontend:
+    image: swr.cn-east-3.myhuaweicloud.com/btc8_public/tech-support-ui:v3
+    container_name: tech-support-ui
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    depends_on:
+      postgres-api:
+        condition: service_healthy
+    networks:
+      - tech-support-network
+    command: >
+      sh -c "
+      sed -i 's|http://192.168.80.23:3001|/api|g' /usr/share/nginx/html/assets/*.js &&
+      sed -i 's|http://localhost:3001|/api|g' /usr/share/nginx/html/assets/*.js &&
+      nginx -g 'daemon off;'
+      "
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  tech-support-network:
+    driver: bridge

@@ -220,21 +220,103 @@ export async function convertToBase64(file: File): Promise<UploadResult> {
 }
 
 /**
- * 主上传函数 (自动选择可用的图床)
+ * 上传到数据库 (主要方案)
+ */
+export async function uploadToDatabase(file: File): Promise<UploadResult> {
+  try {
+    // 先压缩图片
+    const compressedFile = await compressImage(file);
+    
+    const formData = new FormData();
+    formData.append('image', compressedFile);
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+    const response = await fetch(`${API_BASE_URL}/upload/image`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      return {
+        success: true,
+        url: `${API_BASE_URL}${data.url}`, // 完整的图片访问URL
+      };
+    } else {
+      return {
+        success: false,
+        error: data.error || '上传失败',
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '上传失败',
+    };
+  }
+}
+
+/**
+ * Base64 上传到数据库
+ */
+export async function uploadBase64ToDatabase(base64Data: string, filename?: string): Promise<UploadResult> {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+    const response = await fetch(`${API_BASE_URL}/upload/base64`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        base64Data,
+        filename,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      return {
+        success: true,
+        url: `${API_BASE_URL}${data.url}`, // 完整的图片访问URL
+      };
+    } else {
+      return {
+        success: false,
+        error: data.error || '上传失败',
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '上传失败',
+    };
+  }
+}
+
+/**
+ * 主上传函数 (优先使用数据库存储)
  */
 export async function uploadImage(file: File): Promise<UploadResult> {
-  // 先压缩图片
-  const compressedFile = await compressImage(file);
+  // 方案1: 上传到数据库 (主要方案)
+  console.log('上传到数据库...');
+  const dbResult = await uploadToDatabase(file);
+  if (dbResult.success) {
+    console.log('数据库上传成功');
+    return dbResult;
+  }
 
-  // 方案1: 使用 ImgBB (有免费额度)
-  console.log('尝试上传到 ImgBB...');
+  // 方案2: 使用 ImgBB (备用方案)
+  console.log('数据库上传失败，尝试 ImgBB...');
+  const compressedFile = await compressImage(file);
   const imgbbResult = await uploadToImgURL(compressedFile);
   if (imgbbResult.success) {
     console.log('ImgBB 上传成功');
     return imgbbResult;
   }
 
-  // 方案2: 使用 SM.MS
+  // 方案3: 使用 SM.MS
   console.log('ImgBB 失败，尝试 SM.MS...');
   const smmsResult = await uploadToSMMS(compressedFile);
   if (smmsResult.success) {
@@ -242,7 +324,7 @@ export async function uploadImage(file: File): Promise<UploadResult> {
     return smmsResult;
   }
 
-  // 方案3: 转为 Base64 (仅作备用)
-  console.log('所有图床失败，使用 Base64...');
+  // 方案4: 转为 Base64 (最后备用)
+  console.log('所有外部服务失败，使用 Base64...');
   return await convertToBase64(compressedFile);
 }

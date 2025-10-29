@@ -10,7 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Audit } from './pages/Audit';
 import { OutboundManagement } from './pages/OutboundManagement';
 import { Toaster } from './components/ui/sonner';
-import { SupabaseGate } from './components/SupabaseGate';
+import SupabaseGate from './components/SupabaseGate';
 
 // 创建 QueryClient 实例
 const queryClient = new QueryClient({
