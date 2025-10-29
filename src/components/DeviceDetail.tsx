@@ -17,7 +17,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { EditDeviceDialog } from './EditDeviceDialog';
 import { ActionModal } from './ActionModal';
 import { SOPPanel } from './SOPPanel';
-import { uploadImage, getImageFromClipboard } from '../lib/imageUpload';
+import { uploadImage, getImageFromClipboard, uploadBase64ToDatabase } from '../lib/imageUpload';
 
 interface DeviceDetailProps {
   deviceId: string;
