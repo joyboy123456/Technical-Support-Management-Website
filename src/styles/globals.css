@@ -417,10 +417,10 @@ html {
   }
 }
 
-/* 响应式字体缩放 */
+/* 响应式字体缩放 - 移动端增大基础字号 */
 @media (max-width: 640px) {
   html {
-    font-size: 14px;
+    font-size: 16px; /* 从14px增大到16px，提升可读性 */
   }
 }
 

@@ -90,7 +90,7 @@ export function KpiCard({
           ? '1px solid var(--interactive-primary)'
           : '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-4) var(--space-5)',
+        padding: 'var(--space-5) var(--space-4)', /* 移动端增加垂直内边距 */
         cursor: 'pointer',
         transition: 'all var(--transition-normal)',
         outline: 'none'
@@ -99,9 +99,8 @@ export function KpiCard({
       {/* 数值区域 */}
       <div className="flex items-baseline gap-2">
         <div
-          className="tabular-nums"
+          className="tabular-nums text-4xl lg:text-3xl"
           style={{
-            fontSize: 'var(--font-size-3xl)',
             fontWeight: 'var(--font-weight-semibold)',
             lineHeight: 'var(--line-height-tight)',
             color: 'var(--text-1)'
@@ -126,9 +125,8 @@ export function KpiCard({
 
       {/* 标签 */}
       <div
-        className="mt-2"
+        className="mt-2 text-sm lg:text-xs"
         style={{
-          fontSize: 'var(--font-size-xs)',
           color: 'var(--text-2)',
           fontWeight: 'var(--font-weight-medium)'
         }}
@@ -169,7 +167,7 @@ interface KpiCardGroupProps {
 export function KpiCardGroup({ children, className = '' }: KpiCardGroupProps) {
   return (
     <div
-      className={`grid grid-cols-2 sm:grid-cols-4 gap-4 ${className}`}
+      className={`grid grid-cols-2 sm:grid-cols-4 gap-4 lg:gap-4 ${className}`}
       role="group"
       aria-label="设备统计概览"
     >

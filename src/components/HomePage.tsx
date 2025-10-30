@@ -1,13 +1,18 @@
-import React from 'react';
-import { getDevices, Device, createDevice, deleteDevice } from '../data/devices';
-import { KpiCard, KpiCardGroup } from './KpiCard';
-import { DeviceCard } from './DeviceCard';
-import { TopToolbar } from './TopToolbar';
-import { Filters, FilterState } from './Filters';
-import { ListView } from './ListView';
-import { DeviceCardSkeleton } from './DeviceCardSkeleton';
-import { toast } from 'sonner';
-import { CreateDeviceDialog } from './CreateDeviceDialog';
+import React from "react";
+import {
+  getDevices,
+  Device,
+  createDevice,
+  deleteDevice,
+} from "../data/devices";
+import { KpiCard, KpiCardGroup } from "./KpiCard";
+import { DeviceCard } from "./DeviceCard";
+import { TopToolbar } from "./TopToolbar";
+import { Filters, FilterState } from "./Filters";
+import { ListView } from "./ListView";
+import { DeviceCardSkeleton } from "./DeviceCardSkeleton";
+import { toast } from "sonner";
+import { CreateDeviceDialog } from "./CreateDeviceDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,8 +21,10 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
-} from './ui/alert-dialog';
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import { useMobile, useBreakpoint } from "../hooks/useMediaQuery";
+import { MOBILE_CLASSES } from "../constants/responsive";
 
 interface HomePageProps {
   onDeviceClick: (deviceId: string) => void;
@@ -37,21 +44,28 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
   const [devices, setDevices] = React.useState<Device[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
-  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [devicePendingDelete, setDevicePendingDelete] = React.useState<Device | null>(null);
+  const [devicePendingDelete, setDevicePendingDelete] =
+    React.useState<Device | null>(null);
+
+  // 响应式检测
+  const isMobile = useMobile();
+  const { isDesktop } = useBreakpoint();
 
   // 筛选状态
   const [filters, setFilters] = React.useState<FilterState>({
-    search: '',
-    status: 'all',
-    location: 'all',
-    sortBy: 'name'
+    search: "",
+    status: "all",
+    location: "all",
+    sortBy: "name",
   });
 
   // 排序方向 (用于列表视图)
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(
+    "asc",
+  );
 
   // 刷新设备列表
   const refreshDevices = React.useCallback(async (showToast = false) => {
@@ -63,7 +77,7 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
         toast.success(`已刷新，共 ${data.length} 台设备`);
       }
     } catch (error) {
-      toast.error('刷新失败，请重试');
+      toast.error("刷新失败，请重试");
     } finally {
       setLoading(false);
     }
@@ -82,8 +96,8 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
 
     // 窗口聚焦时自动刷新
     const handleFocus = () => refreshDevices();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [refreshDevices]);
 
   // 筛选后的设备列表
@@ -93,20 +107,25 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
         device.name.toLowerCase().includes(filters.search.toLowerCase()) ||
         device.serial.toLowerCase().includes(filters.search.toLowerCase()) ||
         device.location.toLowerCase().includes(filters.search.toLowerCase()) ||
-        device.printer.model.toLowerCase().includes(filters.search.toLowerCase());
+        device.printer.model
+          .toLowerCase()
+          .includes(filters.search.toLowerCase());
 
-      const matchesStatus = filters.status === 'all' || device.status === filters.status;
-      const matchesLocation = filters.location === 'all' || device.location.includes(filters.location);
+      const matchesStatus =
+        filters.status === "all" || device.status === filters.status;
+      const matchesLocation =
+        filters.location === "all" ||
+        device.location.includes(filters.location);
 
       return matchesSearch && matchesStatus && matchesLocation;
     });
 
     // 排序
     filtered.sort((a, b) => {
-      const direction = sortDirection === 'asc' ? 1 : -1;
+      const direction = sortDirection === "asc" ? 1 : -1;
 
       switch (filters.sortBy) {
-        case 'name': {
+        case "name": {
           // 规则：
           // 1) 带数字的名称按数字从小到大排序（如：魔镜1号 → 魔镜10号）
           // 2) 英文名按“添加时间”从新到旧或旧到新（根据排序方向）；
@@ -115,14 +134,15 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
             const m = s.match(/(\d+)/);
             return m ? parseInt(m[1], 10) : null;
           };
-          const isEnglishName = (s: string): boolean => /[A-Za-z]/.test(s) && /^[\x00-\x7F]+$/.test(s);
+          const isEnglishName = (s: string): boolean =>
+            /[A-Za-z]/.test(s) && /^[\x00-\x7F]+$/.test(s);
           const getCreatedTs = (d: any): number => {
             if (d.createdAt) {
               const t = new Date(d.createdAt).getTime();
               if (!isNaN(t)) return t;
             }
             // 回退：从 id 中提取时间戳（如 id=dev-1699999999999）
-            if (typeof d.id === 'string') {
+            if (typeof d.id === "string") {
               const m = d.id.match(/^dev-(\d+)$/);
               if (m) return parseInt(m[1], 10);
             }
@@ -135,25 +155,30 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
           const engB = isEnglishName(b.name);
 
           // 排序优先级：数字名(0) → 英文名(1) → 其他(2)
-          const rank = (n: number | null, eng: boolean) => (n !== null ? 0 : (eng ? 1 : 2));
+          const rank = (n: number | null, eng: boolean) =>
+            n !== null ? 0 : eng ? 1 : 2;
           const ra = rank(numA, engA);
           const rb = rank(numB, engB);
 
           if (ra !== rb) return (ra - rb) * direction;
-          if (ra === 0) return ((numA! - numB!) * direction); // 数字名：按数字排序
-          if (ra === 1) return ((getCreatedTs(a) - getCreatedTs(b)) * direction); // 英文名：按创建时间排序
+          if (ra === 0) return (numA! - numB!) * direction; // 数字名：按数字排序
+          if (ra === 1) return (getCreatedTs(a) - getCreatedTs(b)) * direction; // 英文名：按创建时间排序
 
           // 其他名称：自然排序
-          const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+          const collator = new Intl.Collator("zh-CN", {
+            numeric: true,
+            sensitivity: "base",
+          });
           return collator.compare(a.name, b.name) * direction;
         }
-        case 'status':
+        case "status":
           return a.status.localeCompare(b.status) * direction;
-        case 'location':
+        case "location":
           return a.location.localeCompare(b.location) * direction;
-        case 'maintenance':
+        case "maintenance":
           return (
-            (new Date(a.nextMaintenance).getTime() - new Date(b.nextMaintenance).getTime()) *
+            (new Date(a.nextMaintenance).getTime() -
+              new Date(b.nextMaintenance).getTime()) *
             direction
           );
         default:
@@ -168,9 +193,9 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
   const stats = React.useMemo(() => {
     return {
       total: devices.length,
-      running: devices.filter((d) => d.status === '运行中').length,
-      maintenance: devices.filter((d) => d.status === '维护').length,
-      offline: devices.filter((d) => d.status === '离线').length
+      running: devices.filter((d) => d.status === "运行中").length,
+      maintenance: devices.filter((d) => d.status === "维护").length,
+      offline: devices.filter((d) => d.status === "离线").length,
     };
   }, [devices]);
 
@@ -181,24 +206,24 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
 
   // KPI 卡点击筛选
   const handleKpiClick = (filterKey: string) => {
-    if (filterKey === 'all') {
-      setFilters((prev) => ({ ...prev, status: 'all' }));
+    if (filterKey === "all") {
+      setFilters((prev) => ({ ...prev, status: "all" }));
     } else {
       setFilters((prev) => ({ ...prev, status: filterKey }));
     }
-    toast.success(`已筛选: ${filterKey === 'all' ? '全部设备' : filterKey}`);
+    toast.success(`已筛选: ${filterKey === "all" ? "全部设备" : filterKey}`);
   };
 
   // 清除所有筛选
   const handleClearFilters = () => {
     setFilters({
-      search: '',
-      status: 'all',
-      location: 'all',
-      sortBy: 'name'
+      search: "",
+      status: "all",
+      location: "all",
+      sortBy: "name",
     });
-    setSortDirection('asc');
-    toast.success('已清除所有筛选条件');
+    setSortDirection("asc");
+    toast.success("已清除所有筛选条件");
   };
 
   const handleCreateDevice = React.useCallback(() => {
@@ -207,14 +232,17 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
 
   const handleCreateDialogClose = () => setCreateDialogOpen(false);
 
-  const handleCreateDeviceSubmit = React.useCallback(async (deviceInput: Omit<Device, 'id'>) => {
-    const newDevice = await createDevice(deviceInput);
-    if (newDevice) {
-      await refreshDevices();
-    } else {
-      throw new Error('创建设备失败');
-    }
-  }, [refreshDevices]);
+  const handleCreateDeviceSubmit = React.useCallback(
+    async (deviceInput: Omit<Device, "id">) => {
+      const newDevice = await createDevice(deviceInput);
+      if (newDevice) {
+        await refreshDevices();
+      } else {
+        throw new Error("创建设备失败");
+      }
+    },
+    [refreshDevices],
+  );
 
   const handleDeleteDeviceRequest = React.useCallback((device: Device) => {
     setDevicePendingDelete(device);
@@ -233,12 +261,12 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
 
     const success = await deleteDevice(devicePendingDelete.id);
     if (success) {
-      toast.success('设备已删除');
+      toast.success("设备已删除");
       setDeleteDialogOpen(false);
       setDevicePendingDelete(null);
       await refreshDevices();
     } else {
-      toast.error('删除失败，请稍后重试');
+      toast.error("删除失败，请稍后重试");
     }
   }, [devicePendingDelete, refreshDevices]);
 
@@ -251,94 +279,193 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
   const handleListSort = (field: string) => {
     if (filters.sortBy === field) {
       // 切换排序方向
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       // 新字段，默认升序
       setFilters((prev) => ({ ...prev, sortBy: field }));
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
   return (
     <div
-      className="container-constrained py-6"
-      style={{ maxWidth: 'var(--container-max-width)' }}
+      className={`container-constrained py-4 sm:py-6 px-4 sm:px-6 ${MOBILE_CLASSES.mobilePadding}`}
+      style={{ maxWidth: "var(--container-max-width)" }}
     >
-      {/* 页面标题 */}
-      <div className="mb-6">
+      {/* 页面标题 - 移动端隐藏，桌面端显示 */}
+      <div className={`mb-6 ${MOBILE_CLASSES.desktopOnly}`}>
         <h1
           style={{
-            fontSize: 'var(--font-size-3xl)',
-            fontWeight: 'var(--font-weight-semibold)',
-            color: 'var(--text-1)',
-            marginBottom: 'var(--space-2)',
-            letterSpacing: '-0.02em'
+            fontSize: "var(--font-size-3xl)",
+            fontWeight: "var(--font-weight-semibold)",
+            color: "var(--text-1)",
+            marginBottom: "var(--space-2)",
+            letterSpacing: "-0.02em",
           }}
         >
           设备管理中心
         </h1>
-        <p style={{ fontSize: 'var(--font-size-base)', color: 'var(--text-2)' }}>
+        <p
+          style={{ fontSize: "var(--font-size-base)", color: "var(--text-2)" }}
+        >
           管理和监控所有技术支持设备
         </p>
       </div>
 
-      {/* 顶部工具条 */}
-      <TopToolbar
-        onRefresh={handleRefresh}
-        onImport={() => toast.info('导入功能开发中')}
-        onExport={() => toast.info('导出功能开发中')}
-        onCreateDevice={handleCreateDevice}
-        isRefreshing={refreshing}
-        className="mb-6"
-      />
+      {/* 顶部工具条 - 移动端简化 */}
+      <div className="mb-4 lg:mb-6">
+        {isMobile ? (
+          <div>
+            {/* 移动端简化工具条 */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="flex items-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {refreshing ? "刷新中..." : "刷新"}
+                </button>
+              </div>
+              <button
+                onClick={handleCreateDevice}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90"
+              >
+                + 新建
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* 桌面端完整工具条 */}
+            <TopToolbar
+              onRefresh={handleRefresh}
+              onImport={() => toast.info("导入功能开发中")}
+              onExport={() => toast.info("导出功能开发中")}
+              onCreateDevice={handleCreateDevice}
+              isRefreshing={refreshing}
+            />
+          </div>
+        )}
+      </div>
 
-      {/* KPI 统计卡片 */}
-      <KpiCardGroup className="mb-6">
-        <KpiCard
-          label="设备总数"
-          value={stats.total}
-          filterKey="all"
-          onClick={handleKpiClick}
-          isActive={filters.status === 'all'}
-        />
-        <KpiCard
-          label="运行中"
-          value={stats.running}
-          filterKey="运行中"
-          onClick={handleKpiClick}
-          isActive={filters.status === '运行中'}
-        />
-        <KpiCard
-          label="维护中"
-          value={stats.maintenance}
-          filterKey="维护"
-          onClick={handleKpiClick}
-          isActive={filters.status === '维护'}
-        />
-        <KpiCard
-          label="离线"
-          value={stats.offline}
-          filterKey="离线"
-          onClick={handleKpiClick}
-          isActive={filters.status === '离线'}
-        />
-      </KpiCardGroup>
+      {/* KPI 统计卡片 - 移动端2x2网格，桌面端1行 */}
+      <div className="mb-4 lg:mb-6">
+        {isMobile ? (
+          <div className="grid grid-cols-2 gap-3">
+            <KpiCard
+              label="设备总数"
+              value={stats.total}
+              filterKey="all"
+              onClick={handleKpiClick}
+              isActive={filters.status === "all"}
+            />
+            <KpiCard
+              label="运行中"
+              value={stats.running}
+              filterKey="运行中"
+              onClick={handleKpiClick}
+              isActive={filters.status === "运行中"}
+            />
+            <KpiCard
+              label="维护中"
+              value={stats.maintenance}
+              filterKey="维护"
+              onClick={handleKpiClick}
+              isActive={filters.status === "维护"}
+            />
+            <KpiCard
+              label="离线"
+              value={stats.offline}
+              filterKey="离线"
+              onClick={handleKpiClick}
+              isActive={filters.status === "离线"}
+            />
+          </div>
+        ) : (
+          <div>
+            <KpiCardGroup>
+              <KpiCard
+                label="设备总数"
+                value={stats.total}
+                filterKey="all"
+                onClick={handleKpiClick}
+                isActive={filters.status === "all"}
+              />
+              <KpiCard
+                label="运行中"
+                value={stats.running}
+                filterKey="运行中"
+                onClick={handleKpiClick}
+                isActive={filters.status === "运行中"}
+              />
+              <KpiCard
+                label="维护中"
+                value={stats.maintenance}
+                filterKey="维护"
+                onClick={handleKpiClick}
+                isActive={filters.status === "维护"}
+              />
+              <KpiCard
+                label="离线"
+                value={stats.offline}
+                filterKey="离线"
+                onClick={handleKpiClick}
+                isActive={filters.status === "离线"}
+              />
+            </KpiCardGroup>
+          </div>
+        )}
+      </div>
 
-      {/* 筛选区 */}
-      <Filters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-        locations={locations}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        className="mb-6"
-      />
+      {/* 筛选区 - 移动端简化 */}
+      <div className="mb-4 lg:mb-6">
+        {isMobile ? (
+          <div>
+            {/* 移动端简化筛选 */}
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="搜索设备..."
+                value={filters.search}
+                onChange={(e) =>
+                  handleFiltersChange({ search: e.target.value })
+                }
+                className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              />
+              <select
+                value={filters.status}
+                onChange={(e) =>
+                  handleFiltersChange({ status: e.target.value })
+                }
+                className="px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              >
+                <option value="all">全部</option>
+                <option value="运行中">运行中</option>
+                <option value="维护">维护</option>
+                <option value="离线">离线</option>
+              </select>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* 桌面端完整筛选 */}
+            <Filters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={handleClearFilters}
+              locations={locations}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          </div>
+        )}
+      </div>
 
       {/* 设备展示区 */}
       {loading ? (
-        // 骨架屏
-        <div className="device-grid">
+        // 骨架屏 - 移动端单列，桌面端网格
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
             <DeviceCardSkeleton key={i} />
           ))}
@@ -346,73 +473,84 @@ export function HomePage({ onDeviceClick }: HomePageProps) {
       ) : filteredDevices.length === 0 ? (
         // 空状态
         <div
-          className="text-center py-16 fade-in"
+          className="text-center py-12 lg:py-16 fade-in mx-4 lg:mx-0"
           style={{
-            background: 'var(--surface-2)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-subtle)'
+            background: "var(--surface-2)",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-subtle)",
           }}
         >
-          <div style={{ fontSize: '48px', marginBottom: 'var(--space-4)' }}>🔍</div>
+          <div style={{ fontSize: "48px", marginBottom: "var(--space-4)" }}>
+            🔍
+          </div>
           <h3
             style={{
-              fontSize: 'var(--font-size-lg)',
-              fontWeight: 'var(--font-weight-semibold)',
-              color: 'var(--text-1)',
-              marginBottom: 'var(--space-2)'
+              fontSize: "var(--font-size-lg)",
+              fontWeight: "var(--font-weight-semibold)",
+              color: "var(--text-1)",
+              marginBottom: "var(--space-2)",
             }}
           >
             没有找到符合条件的设备
           </h3>
-          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-2)' }}>
+          <p
+            style={{ fontSize: "var(--font-size-sm)", color: "var(--text-2)" }}
+          >
             尝试调整筛选条件或清除所有筛选
           </p>
         </div>
-      ) : viewMode === 'grid' ? (
-        // 网格视图
-        <div className="device-grid">
+      ) : viewMode === "grid" || isMobile ? (
+        // 网格视图 - 移动端强制单列，桌面端响应式网格
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
           {filteredDevices.map((device, index) => (
             <div
               key={device.id}
               className="fade-in"
               style={{
                 animationDelay: `${index * 30}ms`,
-                animationFillMode: 'backwards'
+                animationFillMode: "backwards",
               }}
             >
               <DeviceCard
                 device={device}
                 onClick={onDeviceClick}
-                onMarkMaintenance={(id) => toast.info(`标记设备 ${id} 为维护中`)}
+                onMarkMaintenance={(id) =>
+                  toast.info(`标记设备 ${id} 为维护中`)
+                }
                 onDelete={handleDeleteDeviceRequest}
               />
             </div>
           ))}
         </div>
-      ) : (
-        // 列表视图
-        <ListView
-          devices={filteredDevices}
-          onRowClick={onDeviceClick}
-          sortBy={filters.sortBy}
-          sortDirection={sortDirection}
-          onSortChange={handleListSort}
-          onDeleteDevice={handleDeleteDeviceRequest}
-        />
-      )}
+      ) : isDesktop ? (
+        // 列表视图 - 仅桌面端显示
+        <div>
+          <ListView
+            devices={filteredDevices}
+            onRowClick={onDeviceClick}
+            sortBy={filters.sortBy}
+            sortDirection={sortDirection}
+            onSortChange={handleListSort}
+            onDeleteDevice={handleDeleteDeviceRequest}
+          />
+        </div>
+      ) : null}
       <CreateDeviceDialog
         open={createDialogOpen}
         onClose={handleCreateDialogClose}
         onCreate={handleCreateDeviceSubmit}
       />
-      <AlertDialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={handleDeleteDialogChange}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除设备</AlertDialogTitle>
             <AlertDialogDescription>
               {devicePendingDelete
                 ? `确定要删除设备“${devicePendingDelete.name}”吗？相关的维护与故障记录将一并移除。`
-                : '确定要删除该设备吗？'}
+                : "确定要删除该设备吗？"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
