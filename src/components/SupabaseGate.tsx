@@ -1,38 +1,52 @@
 import React from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isDatabaseConfigured, isPostgresConfigured } from '../lib/supabase';
 
 interface SupabaseGateProps {
   children: React.ReactNode;
 }
 
-/**
- * 严格模式入口守卫
- * - 如果 Supabase 未配置或连接失败，阻止应用加载，显示错误页面
- * - 通过一次轻量查询验证后端可用性与权限
- */
-export function SupabaseGate({ children }: SupabaseGateProps) {
+export default function SupabaseGate({ children }: SupabaseGateProps) {
   const [status, setStatus] = React.useState<'checking' | 'ok' | 'error'>('checking');
-  const [message, setMessage] = React.useState<string>('');
+  const [message, setMessage] = React.useState('');
 
   React.useEffect(() => {
     async function check() {
-      if (!isSupabaseConfigured) {
-        setMessage('Supabase 未配置：请设置 VITE_SUPABASE_URL 与 VITE_SUPABASE_ANON_KEY 后重试。');
+      if (!isDatabaseConfigured) {
+        if (isPostgresConfigured) {
+          setMessage('PostgreSQL 连接失败：请检查数据库服务器是否运行。');
+        } else {
+          setMessage('数据库未配置：请设置 PostgreSQL 或 Supabase 连接参数。');
+        }
         setStatus('error');
         return;
       }
 
       try {
-        // 轻量验证：查询库存表是否可访问（也可换为 devices）
-        const { error } = await supabase
+        // 轻量验证：查询库存表是否可访问
+        const queryBuilder = supabase
           .from('inventory')
           .select('id')
           .limit(1);
 
-        if (error) {
-          setMessage(`无法连接后端或无权限访问：${error.message}`);
-          setStatus('error');
-          return;
+        let result: any;
+        
+        // 检查是否是 PostgreSQL 查询构建器
+        if ('execute' in queryBuilder) {
+          // PostgreSQL 模式
+          result = await queryBuilder.execute();
+          if (result.error) {
+            setMessage(`PostgreSQL 连接失败：${result.error}`);
+            setStatus('error');
+            return;
+          }
+        } else {
+          // Supabase 模式
+          result = await queryBuilder;
+          if (result.error) {
+            setMessage(`无法连接后端或无权限访问：${result.error.message}`);
+            setStatus('error');
+            return;
+          }
         }
 
         setStatus('ok');
